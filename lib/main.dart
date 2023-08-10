@@ -1,4 +1,4 @@
-import 'package:bike_tracker/MainPage.dart';
+import 'package:bike_tracker/components/map.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MainPage(),
+      home: const EindhovenMap(),
     );
   }
 }

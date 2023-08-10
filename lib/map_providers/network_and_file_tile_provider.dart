@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:bike_tracker/downloadable_image_provider.dart';
+import 'package:bike_tracker/map_providers/downloadable_image_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/src/painting/image_provider.dart';
 import 'package:flutter_map/flutter_map.dart';

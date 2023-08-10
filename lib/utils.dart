@@ -1,45 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:latlong2/latlong.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:geolocator/geolocator.dart';
 
-Future<String> getMarkersFilePath() async {
-  Directory directory = await getApplicationDocumentsDirectory();
-
-  String filePath = path.join(directory.path, "marks.json");
-
-  File file = File(filePath);
-  if (!(await file.exists())) {
-    file.createSync();
-    file.writeAsStringSync("[]");
-  }
-
-  return filePath;
-}
-
-addMarker(LatLng marker) async {
-  File file = File(await getMarkersFilePath());
-  String rawJson = file.readAsStringSync();
-
-  List coordinates = jsonDecode(rawJson);
-
-  coordinates.add([marker.latitude, marker.longitude]);
-
-  file.writeAsStringSync(jsonEncode(coordinates));
-}
-
-Future<List<LatLng>> getAllMarkers() async {
-  String rawJson = File(await getMarkersFilePath()).readAsStringSync();
-
-  List coordinates = jsonDecode(rawJson);
-
-  return coordinates.map((coor) => LatLng(coor[0], coor[1])).toList();
-}
-
 Future<bool> isLocationPermitted() async {
+  if (Platform.isLinux) return false;
+
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
     // Location services are not enabled don't continue
@@ -71,14 +36,3 @@ Future<bool> isLocationPermitted() async {
 
   return true;
 }
-
-// Future<String> getUserID() async {
-//   // Obtain shared preferences.
-//   final prefs = await SharedPreferences.getInstance();
-
-// // Save an integer value to 'counter' key.
-//   await prefs.setInt('counter', 10);
-// // Save an boolean value to 'repeat' key.
-// }
-
-class Observable {}
