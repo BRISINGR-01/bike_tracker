@@ -8,18 +8,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 
-class EindhovenMap extends StatefulWidget {
-  const EindhovenMap({Key? key}) : super(key: key);
+class Map extends StatefulWidget {
+  const Map({Key? key}) : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => EindhovenMapState();
+  State<StatefulWidget> createState() => MapState();
 }
 
-class EindhovenMapState extends State<EindhovenMap> {
-  LocationDot? locationDot;
+class MapState extends State<Map> {
+  final mapController = MapController();
+  LatLng? position;
   bool shouldRequestPermissions = false;
   bool hasStarted = false;
 
@@ -32,35 +34,54 @@ class EindhovenMapState extends State<EindhovenMap> {
     };
   }
 
-  Future<void> getLocation() async {
+  Future<void> initializeLocation() async {
     if (kDebugMode && Platform.isLinux) {
-      locationDot = LocationDot.debug;
       setState(() {
-        shouldRequestPermissions = true;
+        position = DebugPoints.Sofia;
       });
+      mapController.move(DebugPoints.Sofia, mapController.zoom);
     } else if (await isLocationPermitted()) {
-      locationDot = await LocationDot.init();
+      var currentPosition = await getPosition();
+      if (mounted) {
+        setState(() {
+          position = currentPosition;
+        });
+      }
+      mapController.move(currentPosition, mapController.zoom);
+      Geolocator.getPositionStream()
+          .listen((event) => onMove(LatLng(event.latitude, event.longitude)));
     } else {
       setState(() {
         shouldRequestPermissions = true;
       });
     }
+  }
 
+  void onUserMoveMap(MapPosition position, bool hasGesture) {
+    if (kDebugMode &&
+        position.center != null &&
+        (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+      onMove(position.center!);
+    }
+  }
+
+  void onMove(LatLng newPosition) {
+    mapController.move(newPosition, mapController.zoom);
     setState(() {
-      locationDot;
+      position = newPosition;
     });
   }
 
-  void onPositionChanged(MapPosition position, bool hasGesture) {}
-
-  void toggleStart() {
-    if (locationDot == null) {
-      getLocation();
+  void toggleStart() async {
+    if (position == null) {
+      await initializeLocation();
     }
 
-    setState(() {
-      hasStarted = !hasStarted;
-    });
+    if (!shouldRequestPermissions) {
+      setState(() {
+        hasStarted = !hasStarted;
+      });
+    }
   }
 
   @override
@@ -90,8 +111,9 @@ class EindhovenMapState extends State<EindhovenMap> {
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Loader();
             return FlutterMap(
+              mapController: mapController,
               options: MapOptions(
-                center: locationDot?.position,
+                center: position,
                 zoom: 13,
                 minZoom: 2,
                 maxZoom: 18,
@@ -99,18 +121,21 @@ class EindhovenMapState extends State<EindhovenMap> {
                   const LatLng(-90, -180.0),
                   const LatLng(90.0, 180.0),
                 ),
-                onPositionChanged: onPositionChanged,
+                onMapReady: initializeLocation,
+                onPositionChanged: onUserMoveMap,
               ),
               children: [
                 TileLayer(
                   urlTemplate: '/home/alex/Documents/maps/{z}/{x}/{y}.png',
+                  fallbackUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                   tileProvider: NetworkAndFileTileProvider(
                     tilesLocalDirectory:
                         snapshot.data["tilesLocalDirectory"] as Directory,
                     placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
                   ),
                 ),
-                if (locationDot != null) MarkerLayer(markers: [locationDot!]),
+                if (position != null)
+                  MarkerLayer(markers: [LocationDot(position!)]),
                 if (shouldRequestPermissions)
                   AlertDialog(
                     shape: const RoundedRectangleBorder(
@@ -121,7 +146,7 @@ class EindhovenMapState extends State<EindhovenMap> {
                     elevation: 24,
                     actions: [
                       TextButton(
-                        onPressed: getLocation,
+                        onPressed: initializeLocation,
                         child: const Text("Allow"),
                       ),
                       TextButton(

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 Future<bool> isLocationPermitted() async {
   if (Platform.isLinux) return false;
@@ -35,4 +36,22 @@ Future<bool> isLocationPermitted() async {
   }
 
   return true;
+}
+
+Future<LatLng> getPosition() async {
+  var position = await Geolocator.getCurrentPosition();
+
+  return LatLng(position.latitude, position.longitude);
+}
+
+class DebugPoints {
+  // ignore: non_constant_identifier_names
+  static LatLng get Sofia {
+    return const LatLng(42.698334, 23.319941);
+  }
+
+  // ignore: non_constant_identifier_names
+  static LatLng get Eindhoven {
+    return const LatLng(51.4231, 5.4623);
+  }
 }
