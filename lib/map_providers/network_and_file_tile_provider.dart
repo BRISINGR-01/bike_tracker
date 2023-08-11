@@ -9,12 +9,10 @@ import 'package:http/http.dart';
 import 'package:http/retry.dart';
 
 class NetworkAndFileTileProvider extends TileProvider {
-  final Directory tilesLocalDirectory;
   final Uint8List placeholder;
 
   NetworkAndFileTileProvider({
     super.headers = const {},
-    required this.tilesLocalDirectory,
     required this.placeholder,
     BaseClient? httpClient,
   }) : httpClient = httpClient ?? RetryClient(Client());
@@ -29,10 +27,12 @@ class NetworkAndFileTileProvider extends TileProvider {
     final file = File(getTileUrl(coordinates, options));
     final fallbackUrl = getTileFallbackUrl(coordinates, options);
 
-    if (fallbackUrl == null || file.existsSync()) return FileImage(file);
+    if (file.existsSync()) {
+      return FileImage(file);
+    }
 
     return DownloadableImageProvider(
-      url: fallbackUrl,
+      url: fallbackUrl!,
       headers: headers,
       destination: file,
       placeholder: placeholder,

@@ -1,7 +1,7 @@
 import 'dart:io';
-
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
+import 'package:bike_tracker/map_providers/drawable_tile_provider.dart';
 import 'package:bike_tracker/map_providers/network_and_file_tile_provider.dart';
 import 'package:bike_tracker/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +11,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' show join;
 
 class Map extends StatefulWidget {
   const Map({Key? key}) : super(key: key);
@@ -27,7 +28,7 @@ class MapState extends State<Map> {
 
   Future getTileFilesDetails() async {
     return {
-      "tilesLocalDirectory": await getApplicationDocumentsDirectory(),
+      "tilesLocalDirectory": (await getApplicationDocumentsDirectory()).path,
       "tilePlaceholder": (await rootBundle.load("assets/placeholder.png"))
           .buffer
           .asUint8List(),
@@ -35,11 +36,11 @@ class MapState extends State<Map> {
   }
 
   Future<void> initializeLocation() async {
-    if (kDebugMode && Platform.isLinux) {
+    if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
       setState(() {
-        position = DebugPoints.Sofia;
+        position = DebugPoints.Eindhoven;
       });
-      mapController.move(DebugPoints.Sofia, mapController.zoom);
+      mapController.move(DebugPoints.Eindhoven, mapController.zoom);
     } else if (await isLocationPermitted()) {
       var currentPosition = await getPosition();
       if (mounted) {
@@ -66,10 +67,19 @@ class MapState extends State<Map> {
   }
 
   void onMove(LatLng newPosition) {
-    mapController.move(newPosition, mapController.zoom);
+    if (!hasStarted) return;
+
     setState(() {
       position = newPosition;
     });
+    moveToPosition(newPosition);
+    paint(newPosition);
+  }
+
+  void paint(LatLng newPosition) {
+    print(newPosition);
+    var p = const Epsg3857().latLngToPoint(newPosition, mapController.zoom);
+    print("${p.x}/${p.y}");
   }
 
   void toggleStart() async {
@@ -78,10 +88,19 @@ class MapState extends State<Map> {
     }
 
     if (!shouldRequestPermissions) {
+      if (!hasStarted && position != null) moveToPosition(position!);
+
       setState(() {
         hasStarted = !hasStarted;
       });
     }
+  }
+
+  moveToPosition(LatLng newPosition) {
+    //? add animation
+    //? https://github.com/fleaflet/flutter_map/blob/master/example/lib/pages/animated_map_controller.dart
+
+    mapController.move(newPosition, zoomLevel);
   }
 
   @override
@@ -110,13 +129,19 @@ class MapState extends State<Map> {
           future: getTileFilesDetails(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Loader();
+            String tileFileUrl = join(
+                snapshot.data["tilesLocalDirectory"] as String,
+                "maps",
+                "{z}",
+                "{x}",
+                "{y}.png");
             return FlutterMap(
               mapController: mapController,
               options: MapOptions(
                 center: position,
-                zoom: 13,
-                minZoom: 2,
-                maxZoom: 18,
+                zoom: zoomLevel,
+                minZoom: hasStarted ? zoomLevel : 3,
+                maxZoom: hasStarted ? zoomLevel : 18,
                 maxBounds: LatLngBounds(
                   const LatLng(-90, -180.0),
                   const LatLng(90.0, 180.0),
@@ -124,16 +149,7 @@ class MapState extends State<Map> {
                 onMapReady: initializeLocation,
                 onPositionChanged: onUserMoveMap,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: '/home/alex/Documents/maps/{z}/{x}/{y}.png',
-                  fallbackUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                  tileProvider: NetworkAndFileTileProvider(
-                    tilesLocalDirectory:
-                        snapshot.data["tilesLocalDirectory"] as Directory,
-                    placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
-                  ),
-                ),
+              nonRotatedChildren: [
                 if (position != null)
                   MarkerLayer(markers: [LocationDot(position!)]),
                 if (shouldRequestPermissions)
@@ -156,6 +172,37 @@ class MapState extends State<Map> {
                       )
                     ],
                   ),
+              ],
+              children: [
+                TileLayer(
+                  urlTemplate: tileFileUrl,
+                  fallbackUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  tileProvider: NetworkAndFileTileProvider(
+                    placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
+                  ),
+                  tileBuilder: (context, tileWidget, tile) => Stack(children: [
+                    Container(
+                      decoration: BoxDecoration(border: Border.all()),
+                      child: tileWidget,
+                    ),
+                    Container(
+                        color: Colors.grey, child: Text(tile.coordinatesKey))
+                  ]),
+                ),
+                // TileLayer(
+                //   urlTemplate: tileFileUrl,
+                //   tileProvider: DrawableTileProvider(
+                //     placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
+                //   ),
+                //   tileBuilder: (context, tileWidget, tile) => Stack(children: [
+                //     Container(
+                //       decoration: BoxDecoration(border: Border.all()),
+                //       child: tileWidget,
+                //     ),
+                //     Container(
+                //         color: Colors.red, child: Text("tile.coordinatesKey"))
+                //   ]),
+                // ),
               ],
             );
           }),

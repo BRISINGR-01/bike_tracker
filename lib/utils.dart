@@ -55,3 +55,5 @@ class DebugPoints {
     return const LatLng(51.4231, 5.4623);
   }
 }
+
+const double zoomLevel = 18;
