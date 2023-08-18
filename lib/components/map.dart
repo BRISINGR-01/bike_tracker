@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
-import 'package:bike_tracker/map_providers/drawable_tile_provider.dart';
 import 'package:bike_tracker/map_providers/network_and_file_tile_provider.dart';
-import 'package:bike_tracker/utils.dart';
+import 'package:bike_tracker/utils/points_db.dart';
+import 'package:bike_tracker/utils/general.dart';
+import 'package:bike_tracker/utils/points.dart';
+import 'package:bike_tracker/utils/tile_files_details.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map/plugin_api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' show join;
 
 class Map extends StatefulWidget {
@@ -25,22 +25,24 @@ class MapState extends State<Map> {
   LatLng? position;
   bool shouldRequestPermissions = false;
   bool hasStarted = false;
+  // final PointsDB db = PointsDB();
+  Points points = Points();
 
-  Future getTileFilesDetails() async {
-    return {
-      "tilesLocalDirectory": (await getApplicationDocumentsDirectory()).path,
-      "tilePlaceholder": (await rootBundle.load("assets/placeholder.png"))
-          .buffer
-          .asUint8List(),
-    };
-  }
-
-  Future<void> initializeLocation() async {
+  Future<void> prepare() async {
     if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
       setState(() {
         position = DebugPoints.Eindhoven;
       });
       mapController.move(DebugPoints.Eindhoven, mapController.zoom);
+
+      print(mapController.center);
+      print(mapController.bounds?.center);
+      print(mapController.bounds?.north);
+      print(mapController.bounds?.west);
+      print(mapController.bounds?.east);
+      print(mapController.bounds?.south);
+      print(mapController.bounds!.east - mapController.bounds!.west);
+      print(mapController.bounds!.north - mapController.bounds!.south);
     } else if (await isLocationPermitted()) {
       var currentPosition = await getPosition();
       if (mounted) {
@@ -71,24 +73,22 @@ class MapState extends State<Map> {
 
     setState(() {
       position = newPosition;
+      points.add(newPosition);
     });
-    moveToPosition(newPosition);
-    paint(newPosition);
-  }
 
-  void paint(LatLng newPosition) {
-    print(newPosition);
-    var p = const Epsg3857().latLngToPoint(newPosition, mapController.zoom);
-    print("${p.x}/${p.y}");
+    moveToPosition(newPosition);
   }
 
   void toggleStart() async {
     if (position == null) {
-      await initializeLocation();
+      await prepare();
     }
 
     if (!shouldRequestPermissions) {
-      if (!hasStarted && position != null) moveToPosition(position!);
+      if (position != null) {
+        moveToPosition(position!);
+        points.save();
+      }
 
       setState(() {
         hasStarted = !hasStarted;
@@ -97,9 +97,6 @@ class MapState extends State<Map> {
   }
 
   moveToPosition(LatLng newPosition) {
-    //? add animation
-    //? https://github.com/fleaflet/flutter_map/blob/master/example/lib/pages/animated_map_controller.dart
-
     mapController.move(newPosition, zoomLevel);
   }
 
@@ -126,15 +123,13 @@ class MapState extends State<Map> {
         ),
       ),
       body: FutureBuilder(
-          future: getTileFilesDetails(),
+          future: TileFilesDetails.fetch(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Loader();
+            var details = snapshot.data as TileFilesDetails;
             String tileFileUrl = join(
-                snapshot.data["tilesLocalDirectory"] as String,
-                "maps",
-                "{z}",
-                "{x}",
-                "{y}.png");
+                details.tilesLocalDirectory, "maps", "{z}", "{x}", "{y}.png");
+
             return FlutterMap(
               mapController: mapController,
               options: MapOptions(
@@ -146,7 +141,7 @@ class MapState extends State<Map> {
                   const LatLng(-90, -180.0),
                   const LatLng(90.0, 180.0),
                 ),
-                onMapReady: initializeLocation,
+                onMapReady: prepare,
                 onPositionChanged: onUserMoveMap,
               ),
               nonRotatedChildren: [
@@ -162,7 +157,9 @@ class MapState extends State<Map> {
                     elevation: 24,
                     actions: [
                       TextButton(
-                        onPressed: initializeLocation,
+                        onPressed: () async {
+                          if (await requestPermission()) prepare();
+                        },
                         child: const Text("Allow"),
                       ),
                       TextButton(
@@ -178,31 +175,18 @@ class MapState extends State<Map> {
                   urlTemplate: tileFileUrl,
                   fallbackUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                   tileProvider: NetworkAndFileTileProvider(
-                    placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
+                    placeholder: details.tilePlaceholder,
                   ),
-                  tileBuilder: (context, tileWidget, tile) => Stack(children: [
-                    Container(
-                      decoration: BoxDecoration(border: Border.all()),
-                      child: tileWidget,
-                    ),
-                    Container(
-                        color: Colors.grey, child: Text(tile.coordinatesKey))
-                  ]),
                 ),
-                // TileLayer(
-                //   urlTemplate: tileFileUrl,
-                //   tileProvider: DrawableTileProvider(
-                //     placeholder: snapshot.data["tilePlaceholder"] as Uint8List,
-                //   ),
-                //   tileBuilder: (context, tileWidget, tile) => Stack(children: [
-                //     Container(
-                //       decoration: BoxDecoration(border: Border.all()),
-                //       child: tileWidget,
-                //     ),
-                //     Container(
-                //         color: Colors.red, child: Text("tile.coordinatesKey"))
-                //   ]),
-                // ),
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: points.list,
+                      color: Colors.blue,
+                      strokeWidth: 4,
+                    ),
+                  ],
+                ),
               ],
             );
           }),

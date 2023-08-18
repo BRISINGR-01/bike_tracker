@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+
+const double zoomLevel = 18;
 
 Future<bool> isLocationPermitted() async {
   if (Platform.isLinux) return false;
@@ -14,28 +17,13 @@ Future<bool> isLocationPermitted() async {
     return Future.error('Location services are disabled.');
   }
 
+  return await requestPermission();
+}
+
+Future<bool> requestPermission() async {
   LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      // Permissions are denied, next time you could try
-      // requesting permissions again (this is also where
-      // Android's shouldShowRequestPermissionRationale
-      // returned true. According to Android guidelines
-      // your App should show an explanatory UI now.
-      // return Future.error('Location permissions are denied');
-      return false;
-    }
-  }
-
-  if (permission == LocationPermission.deniedForever) {
-    // Permissions are denied forever, handle appropriately.
-    // return Future.error(
-    //     'Location permissions are permanently denied, we cannot request permissions.');
-    return false;
-  }
-
-  return true;
+  return permission != LocationPermission.denied &&
+      permission != LocationPermission.deniedForever;
 }
 
 Future<LatLng> getPosition() async {
@@ -56,4 +44,7 @@ class DebugPoints {
   }
 }
 
-const double zoomLevel = 18;
+double getDistance(LatLng p1, LatLng p2) {
+  return sqrt(
+      pow(p1.latitude - p2.latitude, 2) + pow(p1.longitude - p2.longitude, 2));
+}
