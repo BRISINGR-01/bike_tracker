@@ -105,7 +105,7 @@ class MapState extends State<Map> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         label: Text(
-          hasStarted ? "Cancel" : "Start",
+          hasStarted ? "Stop" : "Start",
           style: TextStyle(
               color: hasStarted ? Colors.white : Colors.black, fontSize: 16),
         ),

@@ -1,0 +1,15 @@
+1) when a path between points traverses the screen, but the points are out of bounds, so they are not taken from db
+
+2) db: return points in order
+
+3) seperate sessions (ex: other cities)
+
+4) getting only points whithin bounds
+
+5) remove unused points
+
+6) bounds padding
+
+7) algorithm for removing overlaping points and lines
+
+8) memory buffer
