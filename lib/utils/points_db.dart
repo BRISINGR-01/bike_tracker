@@ -1,15 +1,23 @@
+import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:bike_tracker/utils/points.dart';
+import 'package:bike_tracker/utils/sql_wrapper.dart';
 import 'package:latlong2/latlong.dart';
 
 class PointsDB {
-  Bounds currentBounds;
+  final SQLWrapper _db;
+  PointsDB._(this._db);
 
-  PointsDB(this.currentBounds);
+  static Future<PointsDB> init() async {
+    var db = await SQLWrapper.init();
 
-  void initialize() async {}
-  Future<void> add(List<LatLng> points) async {}
-  Future<void> get(Bounds newBounds) async {
-    // ...
-    currentBounds = newBounds;
+    return PointsDB._(db);
+  }
+
+  Future<void> add(List<LatLng> points) async {
+    return _db.insert(points);
+  }
+
+  Future<List<List<LatLng>>> get(CustomBounds bounds) async {
+    return _db.get(bounds);
   }
 }

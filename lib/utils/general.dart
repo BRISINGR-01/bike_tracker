@@ -6,6 +6,9 @@ import 'package:latlong2/latlong.dart';
 
 const double zoomLevel = 18;
 
+const double boundryLongLength = 0.001;
+const double boundryLatLength = boundryLongLength / 1.5;
+
 Future<bool> isLocationPermitted() async {
   if (Platform.isLinux) return false;
 

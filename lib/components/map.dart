@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
 import 'package:bike_tracker/map_providers/network_and_file_tile_provider.dart';
+import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
 import 'package:bike_tracker/utils/points.dart';
@@ -25,24 +26,18 @@ class MapState extends State<Map> {
   LatLng? position;
   bool shouldRequestPermissions = false;
   bool hasStarted = false;
-  // final PointsDB db = PointsDB();
   Points points = Points();
+  Function(MapPosition, bool)? onUserMoveMap;
 
   Future<void> prepare() async {
     if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
       setState(() {
         position = DebugPoints.Eindhoven;
       });
-      mapController.move(DebugPoints.Eindhoven, mapController.zoom);
 
-      print(mapController.center);
-      print(mapController.bounds?.center);
-      print(mapController.bounds?.north);
-      print(mapController.bounds?.west);
-      print(mapController.bounds?.east);
-      print(mapController.bounds?.south);
-      print(mapController.bounds!.east - mapController.bounds!.west);
-      print(mapController.bounds!.north - mapController.bounds!.south);
+      await points.setUp(await PointsDB.init(), DebugPoints.Eindhoven);
+      onUserMoveMap = mapMoveDebug;
+      mapController.move(DebugPoints.Eindhoven, mapController.zoom);
     } else if (await isLocationPermitted()) {
       var currentPosition = await getPosition();
       if (mounted) {
@@ -50,6 +45,8 @@ class MapState extends State<Map> {
           position = currentPosition;
         });
       }
+
+      await points.setUp(await PointsDB.init(), currentPosition);
       mapController.move(currentPosition, mapController.zoom);
       Geolocator.getPositionStream()
           .listen((event) => onMove(LatLng(event.latitude, event.longitude)));
@@ -60,7 +57,7 @@ class MapState extends State<Map> {
     }
   }
 
-  void onUserMoveMap(MapPosition position, bool hasGesture) {
+  void mapMoveDebug(MapPosition position, bool hasGesture) {
     if (kDebugMode &&
         position.center != null &&
         (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
@@ -178,10 +175,52 @@ class MapState extends State<Map> {
                     placeholder: details.tilePlaceholder,
                   ),
                 ),
+                ...points.allPoints.map(
+                  (pointsList) => PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: pointsList,
+                        color: Colors.blue,
+                        strokeWidth: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                if (position != null)
+                  PolygonLayer(
+                    polygons: [
+                      Polygon(points: [
+                        LatLng(
+                            (position!.latitude -
+                                    position!.latitude % boundryLatLength) +
+                                boundryLatLength,
+                            (position!.longitude -
+                                    position!.longitude % boundryLongLength) +
+                                boundryLongLength),
+                        LatLng(
+                            (position!.latitude -
+                                    position!.latitude % boundryLatLength) +
+                                boundryLatLength,
+                            (position!.longitude -
+                                position!.longitude % boundryLongLength)),
+                        LatLng(
+                            (position!.latitude -
+                                position!.latitude % boundryLatLength),
+                            (position!.longitude -
+                                position!.longitude % boundryLongLength)),
+                        LatLng(
+                            (position!.latitude -
+                                position!.latitude % boundryLatLength),
+                            (position!.longitude -
+                                    position!.longitude % boundryLongLength) +
+                                boundryLongLength),
+                      ], borderColor: Colors.black, borderStrokeWidth: 2),
+                    ],
+                  ),
                 PolylineLayer(
                   polylines: [
                     Polyline(
-                      points: points.list,
+                      points: points.newPoints,
                       color: Colors.blue,
                       strokeWidth: 4,
                     ),

@@ -1,52 +1,48 @@
 import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
+import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:latlong2/latlong.dart';
 
 // distance between visibleBounds and end of screen when bounds are updated
 const double bufferExtend = 0.001;
 
 class Points {
-  List<LatLng> _allPoints = [];
-  List<LatLng> _newPoints = [];
-  Bounds _bounds = Bounds.outsideOfMap;
-  // final PointsDB _db;
-  Bounds? _visibleBounds;
+  List<List<LatLng>> allPoints = [[]];
+  List<LatLng> newPoints = [];
+  CustomBounds _bounds = CustomBounds.outsideOfMap;
+  late PointsDB _db;
 
-  // Points( this._db, this._visibleBounds);
-
-  List<LatLng> get list => _allPoints;
-
-  void _adjust(LatLng center) async {
+  Future<void> changeBoundries(LatLng center) async {
     await save();
+    _bounds = CustomBounds.fromPoint(center);
+    await populate();
   }
 
-  void add(LatLng p) {
-    _adjust(p);
-    if (_allPoints.isEmpty || getDistance(p, _allPoints.last) > 0.0001) {
-      _allPoints.add(p);
-      _newPoints.add(p);
+  Future<void> add(LatLng p) async {
+    if (!_bounds.isWhithin(p)) await changeBoundries(p);
+
+    if (shouldAdd(p)) {
+      // newPoints.add(p);
     }
   }
 
+  bool shouldAdd(LatLng p) {
+    return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
+  }
+
+  Future<void> setUp(PointsDB db, LatLng center) async {
+    _db = db;
+    _bounds = CustomBounds.fromPoint(center);
+    await populate();
+  }
+
+  Future<void> populate() async {
+    allPoints = await _db.get(_bounds);
+  }
+
   Future<void> save() async {
-    // await _db.add(_bounds, _newPoints);
-  }
-}
-
-class Bounds {
-  LatLng upperLeft;
-  LatLng lowerRight;
-
-  Bounds(this.upperLeft, this.lowerRight);
-
-  static get outsideOfMap {
-    return Bounds(const LatLng(90, 180), const LatLng(90, 180));
-  }
-
-  isWhithin(LatLng p) {
-    return upperLeft.latitude < p.latitude &&
-        upperLeft.longitude < p.longitude &&
-        lowerRight.latitude > p.latitude &&
-        lowerRight.longitude > p.longitude;
+    // await _db.add(newPoints);
+    allPoints.add(newPoints);
+    newPoints.clear();
   }
 }
