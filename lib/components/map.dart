@@ -29,7 +29,7 @@ class MapState extends State<Map> {
   Points points = Points();
 
   Future<void> prepare() async {
-    if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
+    if (kDebugMode && (Platform.isLinux)) {
       setState(() {
         position = DebugPoints.Eindhoven;
       });
