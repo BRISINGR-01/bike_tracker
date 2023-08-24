@@ -69,13 +69,13 @@ class DownloadableImageProvider
         Uri.parse(url),
         headers: headers,
       );
+
+      destination
+          .create(recursive: true)
+          .then((value) => value.writeAsBytesSync(bytes, flush: true));
     } catch (_) {
       bytes = placeholder;
     }
-
-    destination
-        .create(recursive: true)
-        .then((value) => value.writeAsBytesSync(bytes, flush: true));
 
     return decode(await ImmutableBuffer.fromUint8List(bytes));
   }

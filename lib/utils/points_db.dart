@@ -1,5 +1,4 @@
 import 'package:bike_tracker/utils/custom_bounds.dart';
-import 'package:bike_tracker/utils/points.dart';
 import 'package:bike_tracker/utils/sql_wrapper.dart';
 import 'package:latlong2/latlong.dart';
 

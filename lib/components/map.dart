@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
 import 'package:bike_tracker/map_providers/network_and_file_tile_provider.dart';
-import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
 import 'package:bike_tracker/utils/points.dart';
@@ -30,29 +29,34 @@ class MapState extends State<Map> {
   Function(MapPosition, bool)? onUserMoveMap;
 
   Future<void> prepare() async {
-    if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
-      setState(() {
-        position = DebugPoints.Eindhoven;
-      });
+    LatLng? newPosition;
 
-      await points.setUp(await PointsDB.init(), DebugPoints.Eindhoven);
+    if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
+      newPosition = DebugPoints.Eindhoven;
+
       onUserMoveMap = mapMoveDebug;
-      mapController.move(DebugPoints.Eindhoven, mapController.zoom);
     } else if (await isLocationPermitted()) {
-      var currentPosition = await getPosition();
+      newPosition = await getPosition();
       if (mounted) {
         setState(() {
-          position = currentPosition;
+          position = newPosition;
         });
       }
 
-      await points.setUp(await PointsDB.init(), currentPosition);
-      mapController.move(currentPosition, mapController.zoom);
       Geolocator.getPositionStream()
           .listen((event) => onMove(LatLng(event.latitude, event.longitude)));
     } else {
       setState(() {
         shouldRequestPermissions = true;
+      });
+    }
+
+    if (newPosition != null) {
+      mapController.move(newPosition, mapController.zoom);
+      points.setUp(await PointsDB.init(), newPosition, mapController);
+
+      setState(() {
+        position = newPosition;
       });
     }
   }
@@ -84,7 +88,7 @@ class MapState extends State<Map> {
     if (!shouldRequestPermissions) {
       if (position != null) {
         moveToPosition(position!);
-        points.save();
+        await points.save();
       }
 
       setState(() {
@@ -139,6 +143,9 @@ class MapState extends State<Map> {
                   const LatLng(90.0, 180.0),
                 ),
                 onMapReady: prepare,
+                // onPointerDown: (tapPosition, point) {
+                //   points.add(point);
+                // },
                 onPositionChanged: onUserMoveMap,
               ),
               nonRotatedChildren: [
@@ -190,30 +197,12 @@ class MapState extends State<Map> {
                   PolygonLayer(
                     polygons: [
                       Polygon(points: [
-                        LatLng(
-                            (position!.latitude -
-                                    position!.latitude % boundryLatLength) +
-                                boundryLatLength,
-                            (position!.longitude -
-                                    position!.longitude % boundryLongLength) +
-                                boundryLongLength),
-                        LatLng(
-                            (position!.latitude -
-                                    position!.latitude % boundryLatLength) +
-                                boundryLatLength,
-                            (position!.longitude -
-                                position!.longitude % boundryLongLength)),
-                        LatLng(
-                            (position!.latitude -
-                                position!.latitude % boundryLatLength),
-                            (position!.longitude -
-                                position!.longitude % boundryLongLength)),
-                        LatLng(
-                            (position!.latitude -
-                                position!.latitude % boundryLatLength),
-                            (position!.longitude -
-                                    position!.longitude % boundryLongLength) +
-                                boundryLongLength),
+                        points.bounds.upperLeft,
+                        LatLng(points.bounds.upperLeft.latitude,
+                            points.bounds.lowerRight.longitude),
+                        points.bounds.lowerRight,
+                        LatLng(points.bounds.lowerRight.latitude,
+                            points.bounds.upperLeft.longitude),
                       ], borderColor: Colors.black, borderStrokeWidth: 2),
                     ],
                   ),
