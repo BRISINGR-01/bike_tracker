@@ -15,17 +15,15 @@ Future<bool> isLocationPermitted() async {
   if (Platform.isLinux) return false;
 
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // Location services are not enabled don't continue
-    // accessing the position and request users of the
-    // App to enable the location services.
-    return Future.error('Location services are disabled.');
+  if (serviceEnabled) {
+    return true;
   }
 
   return await requestPermission();
 }
 
 Future<bool> requestPermission() async {
+  await Geolocator.openLocationSettings();
   LocationPermission permission = await Geolocator.checkPermission();
   return permission != LocationPermission.denied &&
       permission != LocationPermission.deniedForever;
