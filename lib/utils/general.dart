@@ -52,3 +52,7 @@ double getDistance(LatLng p1, LatLng p2) {
   return sqrt(
       pow(p1.latitude - p2.latitude, 2) + pow(p1.longitude - p2.longitude, 2));
 }
+
+bool shouldAdd(LatLng p, List<LatLng> newPoints) {
+  return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
+}

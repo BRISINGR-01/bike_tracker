@@ -11,7 +11,7 @@ class TileFilesDetails {
 
   TileFilesDetails();
 
-  Future<void> fetch() async {
+  Future<void> load() async {
     tilesLocalDirectory = (await getApplicationDocumentsDirectory()).path;
     tilePlaceholder =
         (await rootBundle.load("assets/placeholder.png")).buffer.asUint8List();

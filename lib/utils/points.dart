@@ -14,11 +14,7 @@ class Points {
   late PointsDB _db;
 
   Future<void> add(LatLng p) async {
-    if (shouldAdd(p)) newPoints.add(p);
-  }
-
-  bool shouldAdd(LatLng p) {
-    return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
+    if (shouldAdd(p, newPoints)) newPoints.add(p);
   }
 
   Future<void> setUp(
@@ -116,6 +112,7 @@ class Points {
     }
 
     if (hasExpanded) {
+      print(hasExpanded);
       await save();
       populate().then((_) {
         if (allPoints.isEmpty) return;
