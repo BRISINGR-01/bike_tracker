@@ -19,9 +19,9 @@ class SQLWrapper {
     var instance = await databaseFactoryFfi
         .openDatabase(path.join(dbDirectory.path, 'points-database.sql'));
 
-    instance.execute('''
-      DROP TABLE IF EXISTS '$tableName'
-    ''');
+    // instance.execute('''
+    //   DROP TABLE IF EXISTS '$tableName'
+    // ''');
     instance.execute('''
       CREATE TABLE IF NOT EXISTS $tableName (
         $latColumn float(3, 6) NOT NULL,

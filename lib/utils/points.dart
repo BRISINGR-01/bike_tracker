@@ -7,7 +7,7 @@ import 'package:flutter_map/plugin_api.dart';
 import 'package:latlong2/latlong.dart';
 
 class Points {
-  List<List<LatLng>> allPoints = [[]];
+  List<List<LatLng>> allPoints = [];
   List<LatLng> newPoints = [];
   CustomBounds outerBounds = CustomBounds.outsideOfMap;
   CustomBounds innerBounds = CustomBounds.outsideOfMap;
@@ -23,25 +23,26 @@ class Points {
     return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
   }
 
-  void setUp(
+  Future<void> setUp(
     PointsDB db,
     LatLng center,
     MapController mapController,
   ) {
     _db = db;
 
-    setBoundries(center, mapController);
+    return setBoundries(center, mapController);
   }
 
-  setBoundries(LatLng center, MapController mapController) {
+  Future<void> setBoundries(LatLng center, MapController mapController) {
     if (mapController.zoom < 5) {
       outerBounds = CustomBounds.wholeMap;
-      populate();
-      return;
+      innerBounds = CustomBounds.fromPoint(center);
+      return populate();
     }
 
     outerBounds = CustomBounds.fromPoint(center);
     innerBounds = CustomBounds.fromPoint(center);
+
     var screenMiddle = mapController.latLngToScreenPoint(center);
     var screen = screenMiddle.scaleBy(const CustomPoint(2, 2));
 
@@ -64,6 +65,7 @@ class Points {
       upperLeftCoord = mapController.latLngToScreenPoint(outerBounds.upperLeft);
     }
     loopBuffer = 0;
+
     // south
     while (lowerRightCoord.y < screen.y && loopBuffer++ < 10) {
       outerBounds.expandSouth(boundryLatLength: lengthLat);
@@ -71,6 +73,7 @@ class Points {
           mapController.latLngToScreenPoint(outerBounds.lowerRight);
     }
     loopBuffer = 0;
+
     // east
     while (lowerRightCoord.x < screen.x && loopBuffer++ < 10) {
       outerBounds.expandEast(boundryLngLength: lengthLng);
@@ -78,13 +81,19 @@ class Points {
           mapController.latLngToScreenPoint(outerBounds.lowerRight);
     }
     loopBuffer = 0;
+
     // west
     while (upperLeftCoord.x > 0 && loopBuffer++ < 10) {
       outerBounds.expandWest(boundryLngLength: lengthLng);
       upperLeftCoord = mapController.latLngToScreenPoint(outerBounds.upperLeft);
     }
 
-    populate();
+    outerBounds.expandNorth(boundryLatLength: lengthLat);
+    outerBounds.expandSouth(boundryLatLength: lengthLat);
+    outerBounds.expandEast(boundryLngLength: lengthLng);
+    outerBounds.expandWest(boundryLngLength: lengthLng);
+
+    return populate();
   }
 
   void adjustBoundries(LatLng center) async {
@@ -110,12 +119,16 @@ class Points {
 
     if (hasExpanded) {
       await save();
-      populate();
+      populate().then((_) {
+        if (allPoints.isEmpty) return;
+
+        allPoints.last.add(center);
+      });
     }
   }
 
-  void populate() {
-    _db.get(outerBounds).then((value) {
+  Future<void> populate() {
+    return _db.get(outerBounds).then((value) {
       allPoints = value;
     });
   }

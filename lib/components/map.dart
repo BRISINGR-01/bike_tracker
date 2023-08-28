@@ -49,7 +49,9 @@ class MapState extends State<Map> {
 
     if (newPosition != null) {
       moveToPosition(newPosition);
-      points.setUp(await PointsDB.init(), newPosition, mapController);
+      points
+          .setUp(await PointsDB.init(), newPosition, mapController)
+          .then((_) => setState(() {}));
 
       setState(() {
         position = newPosition;
@@ -58,7 +60,9 @@ class MapState extends State<Map> {
   }
 
   void onMapMove(MapPosition mapPosition, bool hasGesture) {
-    if (mapPosition.center == null || position == null) return;
+    if (mapPosition.center == null ||
+        position == null ||
+        mapPosition.zoom != zoomLevel) return;
 
     setState(() {
       points.adjustBoundries(mapPosition.center!);
@@ -95,9 +99,9 @@ class MapState extends State<Map> {
 
   onMapEvent(MapEvent p0) {
     if (p0.zoom != zoomLevel && p0.source == MapEventSource.scrollWheel) {
-      // setState(() {
-      // points.setBoundries(position!, mapController);
-      // });
+      setState(() {
+        points.setBoundries(position!, mapController);
+      });
     }
   }
 
@@ -168,7 +172,9 @@ class MapState extends State<Map> {
                         ),
                         nonRotatedChildren: [
                           if (position != null)
-                            MarkerLayer(markers: [LocationDot(position!)]),
+                            MarkerLayer(markers: [
+                              LocationDot(position!, mapController.zoom)
+                            ]),
                           if (shouldRequestPermissions)
                             AlertDialog(
                               shape: const RoundedRectangleBorder(
@@ -205,26 +211,6 @@ class MapState extends State<Map> {
                               placeholder: tileFilesDetails.tilePlaceholder,
                             ),
                           ),
-                          if (position != null)
-                            PolygonLayer(
-                              polygons: [
-                                Polygon(
-                                  points: [
-                                    points.outerBounds.upperLeft,
-                                    LatLng(
-                                        points.outerBounds.upperLeft.latitude,
-                                        points
-                                            .outerBounds.lowerRight.longitude),
-                                    points.outerBounds.lowerRight,
-                                    LatLng(
-                                        points.outerBounds.lowerRight.latitude,
-                                        points.outerBounds.upperLeft.longitude),
-                                  ],
-                                  borderColor: Colors.black,
-                                  borderStrokeWidth: 2,
-                                ),
-                              ],
-                            ),
                           if (position != null)
                             PolygonLayer(
                               polygons: [
