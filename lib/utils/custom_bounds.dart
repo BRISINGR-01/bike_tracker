@@ -7,61 +7,67 @@ class CustomBounds {
 
   CustomBounds(this.upperLeft, this.lowerRight);
 
-  static get outsideOfMap {
+  static CustomBounds get outsideOfMap {
     return CustomBounds(const LatLng(90, 180), const LatLng(90, 180));
   }
 
-  bool shouldExpandNorth(LatLng p) =>
-      upperLeft.latitude - boundryBufferLat < p.latitude;
-  bool shouldExpandSouth(LatLng p) =>
-      lowerRight.latitude + boundryBufferLat > p.latitude;
-  bool shouldExpandEast(LatLng p) =>
-      lowerRight.longitude - boundryBufferLng < p.longitude;
-  bool shouldExpandWest(LatLng p) =>
-      upperLeft.longitude + boundryBufferLng > p.longitude;
-
-  shouldExpand(LatLng p) {
-    return shouldExpandNorth(p) ||
-        shouldExpandWest(p) ||
-        shouldExpandEast(p) ||
-        shouldExpandSouth(p);
+  static CustomBounds get wholeMap {
+    return CustomBounds(const LatLng(90, -180), const LatLng(-90, 180));
   }
 
-  expand(LatLng p) {
-    if (shouldExpandNorth(p)) {
-      upperLeft =
-          LatLng(upperLeft.latitude + boundryLatLength, upperLeft.longitude);
-    } else if (shouldExpandSouth(p)) {
+  bool shouldExpandNorth(LatLng p) => upperLeft.latitude < p.latitude;
+
+  void expandNorth({
+    shouldMove = false,
+    double boundryLatLength = boundryLatLength,
+  }) {
+    upperLeft =
+        LatLng(upperLeft.latitude + boundryLatLength, upperLeft.longitude);
+
+    if (shouldMove) {
       lowerRight =
-          LatLng(lowerRight.latitude - boundryLatLength, lowerRight.longitude);
-    } else if (shouldExpandEast(p)) {
-      lowerRight =
-          LatLng(lowerRight.latitude, lowerRight.longitude + boundryLngLength);
-    } else if (shouldExpandWest(p)) {
-      upperLeft =
-          LatLng(upperLeft.latitude, upperLeft.longitude - boundryLngLength);
+          LatLng(lowerRight.latitude + boundryLatLength, lowerRight.longitude);
     }
   }
 
-  move(LatLng p) {
-    if (shouldExpandNorth(p)) {
-      upperLeft =
-          LatLng(upperLeft.latitude + boundryLatLength, upperLeft.longitude);
-      lowerRight =
-          LatLng(lowerRight.latitude + boundryLatLength, lowerRight.longitude);
-    } else if (shouldExpandSouth(p)) {
+  bool shouldExpandSouth(LatLng p) => lowerRight.latitude > p.latitude;
+
+  void expandSouth({
+    shouldMove = false,
+    double boundryLatLength = boundryLatLength,
+  }) {
+    lowerRight =
+        LatLng(lowerRight.latitude - boundryLatLength, lowerRight.longitude);
+
+    if (shouldMove) {
       upperLeft =
           LatLng(upperLeft.latitude - boundryLatLength, upperLeft.longitude);
-      lowerRight =
-          LatLng(lowerRight.latitude - boundryLatLength, lowerRight.longitude);
-    } else if (shouldExpandEast(p)) {
+    }
+  }
+
+  bool shouldExpandEast(LatLng p) => lowerRight.longitude < p.longitude;
+  void expandEast({
+    shouldMove = false,
+    double boundryLngLength = boundryLngLength,
+  }) {
+    lowerRight =
+        LatLng(lowerRight.latitude, lowerRight.longitude + boundryLngLength);
+    if (shouldMove) {
       upperLeft =
           LatLng(upperLeft.latitude, upperLeft.longitude + boundryLngLength);
-      lowerRight =
-          LatLng(lowerRight.latitude, lowerRight.longitude + boundryLngLength);
-    } else if (shouldExpandWest(p)) {
-      upperLeft =
-          LatLng(upperLeft.latitude, upperLeft.longitude - boundryLngLength);
+    }
+  }
+
+  bool shouldExpandWest(LatLng p) => upperLeft.longitude > p.longitude;
+
+  void expandWest({
+    shouldMove = false,
+    double boundryLngLength = boundryLngLength,
+  }) {
+    upperLeft =
+        LatLng(upperLeft.latitude, upperLeft.longitude - boundryLngLength);
+
+    if (shouldMove) {
       lowerRight =
           LatLng(lowerRight.latitude, lowerRight.longitude - boundryLngLength);
     }

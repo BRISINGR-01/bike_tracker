@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
 import 'package:bike_tracker/map_providers/network_and_file_tile_provider.dart';
+import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
 import 'package:bike_tracker/utils/points.dart';
@@ -11,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path/path.dart' show join;
 
 class Map extends StatefulWidget {
   const Map({Key? key}) : super(key: key);
@@ -26,25 +26,21 @@ class MapState extends State<Map> {
   bool shouldRequestPermissions = false;
   bool hasStarted = false;
   Points points = Points();
-  Function(MapPosition, bool)? onUserMoveMap;
+  bool isDebug = kDebugMode &&
+      (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
+  TileFilesDetails tileFilesDetails = TileFilesDetails();
+  var scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> prepare() async {
     LatLng? newPosition;
 
-    if (kDebugMode && (Platform.isLinux || Platform.isMacOS)) {
+    if (isDebug) {
       newPosition = DebugPoints.Eindhoven;
-
-      onUserMoveMap = mapMoveDebug;
     } else if (await isLocationPermitted()) {
       newPosition = await getPosition();
-      if (mounted) {
-        setState(() {
-          position = newPosition;
-        });
-      }
 
-      Geolocator.getPositionStream()
-          .listen((event) => onMove(LatLng(event.latitude, event.longitude)));
+      Geolocator.getPositionStream().listen(
+          (event) => moveToPosition(LatLng(event.latitude, event.longitude)));
     } else {
       setState(() {
         shouldRequestPermissions = true;
@@ -52,8 +48,8 @@ class MapState extends State<Map> {
     }
 
     if (newPosition != null) {
-      mapController.move(newPosition, mapController.zoom);
       points.setUp(await PointsDB.init(), newPosition, mapController);
+      moveToPosition(newPosition);
 
       setState(() {
         position = newPosition;
@@ -61,34 +57,30 @@ class MapState extends State<Map> {
     }
   }
 
-  void mapMoveDebug(MapPosition position, bool hasGesture) {
-    if (kDebugMode &&
-        position.center != null &&
-        (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
-      onMove(position.center!);
-    }
-  }
-
-  void onMove(LatLng newPosition) {
-    if (!hasStarted) return;
+  void onMapMove(MapPosition mapPosition, bool hasGesture) {
+    if (mapPosition.center == null) return;
 
     setState(() {
-      position = newPosition;
-      points.add(newPosition);
-    });
+      points.adjustBoundries(mapPosition.center!);
 
-    moveToPosition(newPosition);
+      if (hasStarted) {
+        position = mapPosition.center!;
+        points.add(position!);
+      }
+    });
   }
 
   void toggleStart() async {
-    if (position == null) {
-      await prepare();
-    }
+    if (position == null) await prepare();
 
     if (!shouldRequestPermissions) {
       if (position != null) {
         moveToPosition(position!);
         await points.save();
+
+        if (!hasStarted) {
+          points.adjustBoundries(position!);
+        }
       }
 
       setState(() {
@@ -101,123 +93,169 @@ class MapState extends State<Map> {
     mapController.move(newPosition, zoomLevel);
   }
 
+  onMapEvent(MapEvent p0) {
+    if (p0.zoom != zoomLevel && p0.source == MapEventSource.scrollWheel) {
+      // setState(() {
+      // points.setBoundries(position!, mapController);
+      // });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    tileFilesDetails.fetch().then((value) {
+      setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        label: Text(
-          hasStarted ? "Stop" : "Start",
-          style: TextStyle(
-              color: hasStarted ? Colors.white : Colors.black, fontSize: 16),
-        ),
-        extendedPadding: const EdgeInsets.all(24),
-        extendedIconLabelSpacing: 12,
-        elevation: 24,
-        shape: const StadiumBorder(side: BorderSide()),
-        onPressed: toggleStart,
-        backgroundColor:
-            hasStarted ? Colors.red : Colors.lightBlueAccent.shade200,
-        icon: Icon(
-          Icons.flag,
-          color: hasStarted ? Colors.white : Colors.black,
-          size: 30,
-        ),
-      ),
-      body: FutureBuilder(
-          future: TileFilesDetails.fetch(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Loader();
-            var details = snapshot.data as TileFilesDetails;
-            String tileFileUrl = join(
-                details.tilesLocalDirectory, "maps", "{z}", "{x}", "{y}.png");
-
-            return FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                center: position,
-                zoom: zoomLevel,
-                minZoom: hasStarted ? zoomLevel : 3,
-                maxZoom: hasStarted ? zoomLevel : 18,
-                maxBounds: LatLngBounds(
-                  const LatLng(-90, -180.0),
-                  const LatLng(90.0, 180.0),
-                ),
-                onMapReady: prepare,
-                // onPointerDown: (tapPosition, point) {
-                //   points.add(point);
-                // },
-                onPositionChanged: onUserMoveMap,
+        drawer: Drawer(
+          key: scaffoldKey,
+          child: ListView(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.delete),
+                title: const Text('Clear cache'),
+                onTap: tileFilesDetails.clearCache,
               ),
-              nonRotatedChildren: [
-                if (position != null)
-                  MarkerLayer(markers: [LocationDot(position!)]),
-                if (shouldRequestPermissions)
-                  AlertDialog(
-                    shape: const RoundedRectangleBorder(
-                        side: BorderSide(),
-                        borderRadius: BorderRadius.all(Radius.circular(20))),
-                    title: const Text("Location Permissions are required"),
-                    content: const Text("Allow Location?"),
-                    elevation: 24,
-                    actions: [
-                      TextButton(
-                        onPressed: () async {
-                          if (await requestPermission()) prepare();
-                        },
-                        child: const Text("Allow"),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          label: Text(
+            hasStarted ? "Stop" : "Start",
+            style: TextStyle(
+                color: hasStarted ? Colors.white : Colors.black, fontSize: 16),
+          ),
+          extendedPadding: const EdgeInsets.all(24),
+          extendedIconLabelSpacing: 12,
+          elevation: 24,
+          shape: const StadiumBorder(side: BorderSide()),
+          onPressed: toggleStart,
+          backgroundColor:
+              hasStarted ? Colors.red : Colors.lightBlueAccent.shade200,
+          icon: Icon(
+            Icons.flag,
+            color: hasStarted ? Colors.white : Colors.black,
+            size: 30,
+          ),
+        ),
+        body: Stack(
+          children: [
+            Center(
+              child: !tileFilesDetails.hasLoaded
+                  ? const Loader()
+                  : FlutterMap(
+                      mapController: mapController,
+                      options: MapOptions(
+                        center: position,
+                        zoom: zoomLevel,
+                        minZoom: hasStarted ? zoomLevel : 3,
+                        maxZoom: hasStarted ? zoomLevel : 18,
+                        maxBounds: LatLngBounds(
+                          CustomBounds.wholeMap.upperLeft,
+                          CustomBounds.wholeMap.lowerRight,
+                        ),
+                        onMapReady: prepare,
+                        onPositionChanged: onMapMove,
+                        onMapEvent: onMapEvent,
                       ),
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => shouldRequestPermissions = false),
-                        child: const Text("Cancel"),
-                      )
-                    ],
-                  ),
-              ],
-              children: [
-                TileLayer(
-                  urlTemplate: tileFileUrl,
-                  fallbackUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                  tileProvider: NetworkAndFileTileProvider(
-                    placeholder: details.tilePlaceholder,
-                  ),
-                ),
-                ...points.allPoints.map(
-                  (pointsList) => PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: pointsList,
-                        color: Colors.blue,
-                        strokeWidth: 4,
-                      ),
-                    ],
-                  ),
-                ),
-                if (position != null)
-                  PolygonLayer(
-                    polygons: [
-                      Polygon(points: [
-                        points.bounds.upperLeft,
-                        LatLng(points.bounds.upperLeft.latitude,
-                            points.bounds.lowerRight.longitude),
-                        points.bounds.lowerRight,
-                        LatLng(points.bounds.lowerRight.latitude,
-                            points.bounds.upperLeft.longitude),
-                      ], borderColor: Colors.black, borderStrokeWidth: 2),
-                    ],
-                  ),
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: points.newPoints,
-                      color: Colors.blue,
-                      strokeWidth: 4,
+                      nonRotatedChildren: [
+                        if (position != null)
+                          MarkerLayer(markers: [LocationDot(position!)]),
+                        if (shouldRequestPermissions)
+                          AlertDialog(
+                            shape: const RoundedRectangleBorder(
+                                side: BorderSide(),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(20))),
+                            title:
+                                const Text("Location Permissions are required"),
+                            content: const Text("Allow Location?"),
+                            elevation: 24,
+                            actions: [
+                              TextButton(
+                                onPressed: () async {
+                                  if (await requestPermission()) prepare();
+                                },
+                                child: const Text("Allow"),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  setState(
+                                      () => shouldRequestPermissions = false);
+                                },
+                                child: const Text("Cancel"),
+                              )
+                            ],
+                          ),
+                      ],
+                      children: [
+                        TileLayer(
+                          urlTemplate: tileFilesDetails.tileFileUrl,
+                          fallbackUrl:
+                              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                          tileProvider: NetworkAndFileTileProvider(
+                            placeholder: tileFilesDetails.tilePlaceholder,
+                          ),
+                        ),
+                        if (position != null)
+                          PolygonLayer(
+                            polygons: [
+                              Polygon(
+                                points: [
+                                  points.outerBounds.upperLeft,
+                                  LatLng(points.outerBounds.upperLeft.latitude,
+                                      points.outerBounds.lowerRight.longitude),
+                                  points.outerBounds.lowerRight,
+                                  LatLng(points.outerBounds.lowerRight.latitude,
+                                      points.outerBounds.upperLeft.longitude),
+                                ],
+                                borderColor: Colors.black,
+                                borderStrokeWidth: 2,
+                              ),
+                            ],
+                          ),
+                        ...points.allPoints.map(
+                          (pointsList) => PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: pointsList,
+                                color: Colors.blue,
+                                strokeWidth: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: points.newPoints,
+                              color: Colors.blue,
+                              strokeWidth: 4,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+            ),
+            Positioned(
+              left: 10,
+              top: 10,
+              child: CircleAvatar(
+                backgroundColor: Colors.blueAccent.shade100,
+                radius: 25,
+                child: IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => scaffoldKey.currentState?.openDrawer(),
                 ),
-              ],
-            );
-          }),
-    );
+              ),
+            ),
+          ],
+        ));
   }
 }

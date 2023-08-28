@@ -24,10 +24,39 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_native_splash: ^2.3.2
+  flutter_launcher_icons: ^0.13.1
   flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/placeholder.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/appstore.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  macos:
+    generate: true
+    image_path: "assets/icons/appstore.png"
+  linux:
+    generate: true
+    image_path: "assets/icons/appstore.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/icons/appstore.png
+  branding: assets/icons/appstore.png
+  color_dark: "#121212"
+  image_dark: assets/icons/appstore.png
+  branding_dark: assets/icons/appstore.png
+
+  android_12:
+    image: assets/icons/appstore.png
+    icon_background_color: "#ffffff"
+    image_dark: assets/icons/appstore.png
+    icon_background_color_dark: "#121212"
+
+  web: false

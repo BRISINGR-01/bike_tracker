@@ -8,8 +8,6 @@ const double zoomLevel = 18;
 
 const double boundryLngLength = 0.0015;
 const double boundryLatLength = boundryLngLength / 1.5;
-const double boundryBufferLng = boundryLngLength / 4;
-const double boundryBufferLat = boundryLatLength / 4;
 
 Future<bool> isLocationPermitted() async {
   if (Platform.isLinux) return false;

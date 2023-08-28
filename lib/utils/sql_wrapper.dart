@@ -69,10 +69,10 @@ class SQLWrapper {
   }
 
   Future<void> insert(List<LatLng> coords) async {
-    for (var coord in [...coords]) {
+    for (var coord in coords) {
       await _dbInstance.insert(tableName, {
-        latColumn: coord.latitude,
-        longColumn: coord.longitude,
+        latColumn: coord.latitude.toStringAsFixed(5),
+        longColumn: coord.longitude.toStringAsFixed(5),
       });
     }
   }

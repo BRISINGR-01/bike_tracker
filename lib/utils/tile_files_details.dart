@@ -1,15 +1,36 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 class TileFilesDetails {
-  final String tilesLocalDirectory;
-  final Uint8List tilePlaceholder;
+  late String tilesLocalDirectory;
+  late Uint8List tilePlaceholder;
+  bool hasLoaded = false;
 
-  const TileFilesDetails(this.tilesLocalDirectory, this.tilePlaceholder);
-  static fetch() async {
-    return TileFilesDetails(
-      (await getApplicationDocumentsDirectory()).path,
-      (await rootBundle.load("assets/placeholder.png")).buffer.asUint8List(),
-    );
+  TileFilesDetails();
+
+  Future<void> fetch() async {
+    tilesLocalDirectory = (await getApplicationDocumentsDirectory()).path;
+    tilePlaceholder =
+        (await rootBundle.load("assets/placeholder.png")).buffer.asUint8List();
+    hasLoaded = true;
   }
+
+  clearCache() {
+    if (!hasLoaded) return;
+
+    var dir = Directory(join(tilesLocalDirectory, "map"));
+
+    if (dir.existsSync()) dir.delete();
+  }
+
+  String get tileFileUrl => join(
+        tilesLocalDirectory,
+        "maps",
+        "{z}",
+        "{x}",
+        "{y}.png",
+      );
 }
