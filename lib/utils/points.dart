@@ -41,6 +41,7 @@ class Points {
     }
 
     outerBounds = CustomBounds.fromPoint(center);
+    innerBounds = CustomBounds.fromPoint(center);
     var screenMiddle = mapController.latLngToScreenPoint(center);
     var screen = screenMiddle.scaleBy(const CustomPoint(2, 2));
 
