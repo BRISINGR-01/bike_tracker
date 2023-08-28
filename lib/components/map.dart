@@ -30,6 +30,7 @@ class MapState extends State<Map> {
       (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
   TileFilesDetails tileFilesDetails = TileFilesDetails();
   var scaffoldKey = GlobalKey<ScaffoldState>();
+  bool userHasMoved = false;
 
   Future<void> prepare() async {
     LatLng? newPosition;
@@ -60,11 +61,18 @@ class MapState extends State<Map> {
   }
 
   void onMapMove(MapPosition mapPosition, bool hasGesture) {
+    if (hasGesture) {
+      setState(() {
+        userHasMoved = true;
+      });
+    }
+
     if (mapPosition.center == null ||
         position == null ||
         mapPosition.zoom != zoomLevel) return;
 
     setState(() {
+      shouldRequestPermissions = false;
       points.adjustBoundries(mapPosition.center!);
 
       if (hasStarted) {
@@ -94,7 +102,9 @@ class MapState extends State<Map> {
   }
 
   moveToPosition(LatLng newPosition) {
-    mapController.move(newPosition, zoomLevel);
+    if (!userHasMoved) {
+      mapController.move(newPosition, zoomLevel);
+    }
   }
 
   onMapEvent(MapEvent p0) {
@@ -152,6 +162,29 @@ class MapState extends State<Map> {
           ),
           body: Stack(
             children: [
+              if (shouldRequestPermissions)
+                AlertDialog(
+                  shape: const RoundedRectangleBorder(
+                      side: BorderSide(),
+                      borderRadius: BorderRadius.all(Radius.circular(20))),
+                  title: const Text("Location Permissions are required"),
+                  content: const Text("Allow Location?"),
+                  elevation: 24,
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        if (await requestPermission()) prepare();
+                      },
+                      child: const Text("Allow"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => shouldRequestPermissions = false);
+                      },
+                      child: const Text("Cancel"),
+                    )
+                  ],
+                ),
               Center(
                 child: !tileFilesDetails.hasLoaded
                     ? const Loader()
@@ -166,6 +199,11 @@ class MapState extends State<Map> {
                             CustomBounds.wholeMap.upperLeft,
                             CustomBounds.wholeMap.lowerRight,
                           ),
+                          interactiveFlags: InteractiveFlag.drag |
+                              InteractiveFlag.doubleTapZoom |
+                              InteractiveFlag.flingAnimation |
+                              InteractiveFlag.pinchMove |
+                              InteractiveFlag.pinchZoom,
                           onMapReady: prepare,
                           onPositionChanged: onMapMove,
                           onMapEvent: onMapEvent,
@@ -175,32 +213,6 @@ class MapState extends State<Map> {
                             MarkerLayer(markers: [
                               LocationDot(position!, mapController.zoom)
                             ]),
-                          if (shouldRequestPermissions)
-                            AlertDialog(
-                              shape: const RoundedRectangleBorder(
-                                  side: BorderSide(),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(20))),
-                              title: const Text(
-                                  "Location Permissions are required"),
-                              content: const Text("Allow Location?"),
-                              elevation: 24,
-                              actions: [
-                                TextButton(
-                                  onPressed: () async {
-                                    if (await requestPermission()) prepare();
-                                  },
-                                  child: const Text("Allow"),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    setState(
-                                        () => shouldRequestPermissions = false);
-                                  },
-                                  child: const Text("Cancel"),
-                                )
-                              ],
-                            ),
                         ],
                         children: [
                           TileLayer(
@@ -266,6 +278,22 @@ class MapState extends State<Map> {
                   ),
                 ),
               ),
+              if (userHasMoved)
+                Positioned(
+                  bottom: 90,
+                  right: 20,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.blueAccent.shade100,
+                    radius: 25,
+                    child: IconButton(
+                      icon: const Icon(Icons.my_location_outlined),
+                      onPressed: () {
+                        userHasMoved = false;
+                        if (position != null) moveToPosition(position!);
+                      },
+                    ),
+                  ),
+                )
             ],
           )),
     );

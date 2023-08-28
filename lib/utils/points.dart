@@ -14,9 +14,7 @@ class Points {
   late PointsDB _db;
 
   Future<void> add(LatLng p) async {
-    if (!shouldAdd(p)) return;
-    // print(p);
-    newPoints.add(p);
+    if (shouldAdd(p)) newPoints.add(p);
   }
 
   bool shouldAdd(LatLng p) {
@@ -122,6 +120,7 @@ class Points {
       populate().then((_) {
         if (allPoints.isEmpty) return;
 
+        // connect ;new points and old ones (they are different layers)
         allPoints.last.add(center);
       });
     }
