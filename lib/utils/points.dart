@@ -14,7 +14,7 @@ class Points {
   late PointsDB _db;
 
   Future<void> add(LatLng p) async {
-    if (shouldAdd(p, newPoints)) newPoints.add(p);
+    if (shouldAdd(p, newPoints, allPoints)) newPoints.add(p);
   }
 
   Future<void> setUp(
