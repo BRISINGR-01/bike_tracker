@@ -7,8 +7,10 @@ import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
 import 'package:bike_tracker/utils/points.dart';
 import 'package:bike_tracker/utils/tile_files_details.dart';
+import 'package:bike_tracker/utils/user_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_map/plugin_api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -22,14 +24,19 @@ class Map extends StatefulWidget {
 
 class MapState extends State<Map> {
   final mapController = MapController();
-  LatLng? position;
-  bool shouldRequestPermissions = false;
-  bool hasStarted = false;
-  Points points = Points();
-  bool isDebug = kDebugMode &&
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+  final bool isDebug = kDebugMode &&
       (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
-  TileFilesDetails tileFilesDetails = TileFilesDetails();
-  var scaffoldKey = GlobalKey<ScaffoldState>();
+
+  bool hasStarted = false;
+  bool userHasMoved = false;
+  bool shouldRequestPermissions = false;
+
+  LatLng? position;
+  String? colorToPick;
+  final Points points = Points();
+  final TileFilesDetails tileFilesDetails = TileFilesDetails();
+  final UserSettings userSettings = UserSettings();
 
   Future<void> prepare() async {
     LatLng? newPosition;
@@ -54,15 +61,22 @@ class MapState extends State<Map> {
           .then((_) => setState(() {}));
 
       setState(() {
+        shouldRequestPermissions = false;
         position = newPosition;
       });
     }
   }
 
   void onMapMove(MapPosition mapPosition, bool hasGesture) {
-    if (mapPosition.center == null ||
-        position == null ||
-        mapPosition.zoom != zoomLevel) return;
+    if (hasGesture) {
+      setState(() {
+        userHasMoved = true;
+      });
+
+      if (!isDebug) return;
+    }
+
+    if (mapPosition.center == null || position == null) return;
 
     setState(() {
       points.adjustBoundries(mapPosition.center!);
@@ -79,6 +93,7 @@ class MapState extends State<Map> {
 
     if (!shouldRequestPermissions) {
       if (position != null) {
+        userHasMoved = false;
         moveToPosition(position!);
         await points.save();
 
@@ -94,11 +109,13 @@ class MapState extends State<Map> {
   }
 
   moveToPosition(LatLng newPosition) {
-    mapController.move(newPosition, zoomLevel);
+    if (!userHasMoved) {
+      mapController.move(newPosition, zoomLevel);
+    }
   }
 
   onMapEvent(MapEvent p0) {
-    if (p0.zoom != zoomLevel && p0.source == MapEventSource.scrollWheel) {
+    if (p0.zoom != mapController.zoom && position != null) {
       setState(() {
         points.setBoundries(position!, mapController);
       });
@@ -109,7 +126,11 @@ class MapState extends State<Map> {
   void initState() {
     super.initState();
 
-    tileFilesDetails.fetch().then((value) {
+    tileFilesDetails.load().then((value) {
+      setState(() {});
+    });
+
+    userSettings.load().then((value) {
       setState(() {});
     });
   }
@@ -118,14 +139,30 @@ class MapState extends State<Map> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+          key: scaffoldKey,
           drawer: Drawer(
-            key: scaffoldKey,
             child: ListView(
               children: [
                 ListTile(
                   leading: const Icon(Icons.delete),
                   title: const Text('Clear cache'),
                   onTap: tileFilesDetails.clearCache,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.color_lens),
+                  title: const Text('Change trail colour'),
+                  onTap: () {
+                    setState(() => colorToPick = "trail");
+                    scaffoldKey.currentState?.closeDrawer();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.color_lens),
+                  title: const Text('Change location dot colour'),
+                  onTap: () {
+                    setState(() => colorToPick = "dot");
+                    scaffoldKey.currentState?.closeDrawer();
+                  },
                 ),
               ],
             ),
@@ -143,7 +180,7 @@ class MapState extends State<Map> {
             shape: const StadiumBorder(side: BorderSide()),
             onPressed: toggleStart,
             backgroundColor:
-                hasStarted ? Colors.red : Colors.lightBlueAccent.shade200,
+                hasStarted ? Colors.red : Colors.greenAccent.shade400,
             icon: Icon(
               Icons.flag,
               color: hasStarted ? Colors.white : Colors.black,
@@ -160,12 +197,17 @@ class MapState extends State<Map> {
                         options: MapOptions(
                           center: position,
                           zoom: zoomLevel,
-                          minZoom: hasStarted ? zoomLevel : 3,
-                          maxZoom: hasStarted ? zoomLevel : 18,
+                          minZoom: 2,
+                          maxZoom: 18,
                           maxBounds: LatLngBounds(
                             CustomBounds.wholeMap.upperLeft,
                             CustomBounds.wholeMap.lowerRight,
                           ),
+                          interactiveFlags: InteractiveFlag.drag |
+                              InteractiveFlag.doubleTapZoom |
+                              InteractiveFlag.flingAnimation |
+                              InteractiveFlag.pinchMove |
+                              InteractiveFlag.pinchZoom,
                           onMapReady: prepare,
                           onPositionChanged: onMapMove,
                           onMapEvent: onMapEvent,
@@ -173,8 +215,91 @@ class MapState extends State<Map> {
                         nonRotatedChildren: [
                           if (position != null)
                             MarkerLayer(markers: [
-                              LocationDot(position!, mapController.zoom)
+                              LocationDot(
+                                position!,
+                                mapController.zoom,
+                                userSettings.locationDot,
+                                userSettings.locationDotInner,
+                              )
                             ]),
+                        ],
+                        children: [
+                          TileLayer(
+                            urlTemplate: tileFilesDetails.tileFileUrl,
+                            fallbackUrl:
+                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            tileProvider: NetworkAndFileTileProvider(
+                              placeholder: tileFilesDetails.tilePlaceholder,
+                            ),
+                          ),
+                          ...points.allPoints.map(
+                            (pointsList) => PolylineLayer(
+                              polylines: [
+                                Polyline(
+                                  points: pointsList,
+                                  color: userSettings.trail,
+                                  strokeWidth: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: points.newPoints,
+                                color: userSettings.trail,
+                                strokeWidth: 4,
+                              ),
+                            ],
+                          ),
+                          if (colorToPick != null)
+                            AlertDialog(
+                              title: const Text('Pick a color!'),
+                              content: SingleChildScrollView(
+                                child: ColorPicker(
+                                  pickerColor: colorToPick == "trail"
+                                      ? userSettings.trail
+                                      : userSettings.locationDot,
+                                  onColorChanged: (value) => setState(() {
+                                    if (colorToPick == "trail") {
+                                      userSettings.trail = value;
+                                    } else {
+                                      userSettings.locationDot = value;
+                                      userSettings.locationDotInner =
+                                          value.withAlpha(200);
+                                    }
+                                  }),
+                                ),
+                              ),
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  child: const Text('Reset'),
+                                  onPressed: () {
+                                    if (colorToPick == "trail") {
+                                      userSettings
+                                          .resetTrail()
+                                          .then((_) => setState(() {}));
+                                    } else {
+                                      userSettings
+                                          .resetDot()
+                                          .then((_) => setState(() {}));
+                                    }
+                                    setState(() => colorToPick = null);
+                                  },
+                                ),
+                                ElevatedButton(
+                                  child: const Text('Got it'),
+                                  onPressed: () {
+                                    if (colorToPick == "trail") {
+                                      userSettings.saveTrail();
+                                    } else {
+                                      userSettings.saveDot();
+                                    }
+                                    setState(() => colorToPick = null);
+                                  },
+                                ),
+                              ],
+                            ),
                           if (shouldRequestPermissions)
                             AlertDialog(
                               shape: const RoundedRectangleBorder(
@@ -202,56 +327,6 @@ class MapState extends State<Map> {
                               ],
                             ),
                         ],
-                        children: [
-                          TileLayer(
-                            urlTemplate: tileFilesDetails.tileFileUrl,
-                            fallbackUrl:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            tileProvider: NetworkAndFileTileProvider(
-                              placeholder: tileFilesDetails.tilePlaceholder,
-                            ),
-                          ),
-                          if (position != null)
-                            PolygonLayer(
-                              polygons: [
-                                Polygon(
-                                  points: [
-                                    points.innerBounds.upperLeft,
-                                    LatLng(
-                                        points.innerBounds.upperLeft.latitude,
-                                        points
-                                            .innerBounds.lowerRight.longitude),
-                                    points.innerBounds.lowerRight,
-                                    LatLng(
-                                        points.innerBounds.lowerRight.latitude,
-                                        points.innerBounds.upperLeft.longitude),
-                                  ],
-                                  borderColor: Colors.blueGrey,
-                                  borderStrokeWidth: 2,
-                                ),
-                              ],
-                            ),
-                          ...points.allPoints.map(
-                            (pointsList) => PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: pointsList,
-                                  color: Colors.blue,
-                                  strokeWidth: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                          PolylineLayer(
-                            polylines: [
-                              Polyline(
-                                points: points.newPoints,
-                                color: Colors.blue,
-                                strokeWidth: 4,
-                              ),
-                            ],
-                          ),
-                        ],
                       ),
               ),
               Positioned(
@@ -262,10 +337,28 @@ class MapState extends State<Map> {
                   radius: 25,
                   child: IconButton(
                     icon: const Icon(Icons.menu),
-                    onPressed: () => scaffoldKey.currentState?.openDrawer(),
+                    onPressed: () {
+                      scaffoldKey.currentState?.openDrawer();
+                    },
                   ),
                 ),
               ),
+              if (userHasMoved)
+                Positioned(
+                  bottom: 90,
+                  right: 20,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.blueAccent.shade100,
+                    radius: 25,
+                    child: IconButton(
+                      icon: const Icon(Icons.my_location_outlined),
+                      onPressed: () {
+                        userHasMoved = false;
+                        if (position != null) moveToPosition(position!);
+                      },
+                    ),
+                  ),
+                )
             ],
           )),
     );

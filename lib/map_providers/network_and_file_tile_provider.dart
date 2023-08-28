@@ -29,9 +29,7 @@ class NetworkAndFileTileProvider extends TileProvider {
     final file = File(getTileUrl(coordinates, options));
     final fallbackUrl = getTileFallbackUrl(coordinates, options);
 
-    if (file.existsSync()) {
-      return FileImage(file);
-    }
+    if (file.existsSync()) return FileImage(file);
 
     return DownloadableImageProvider(
       url: fallbackUrl!,
