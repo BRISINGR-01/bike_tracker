@@ -25,12 +25,13 @@ class DownloadableImageProvider
   final Map<String, String> headers;
 
   /// Dedicated [ImageProvider] to fetch tiles from the network
-  DownloadableImageProvider(
-      {required this.url,
-      required this.destination,
-      required this.headers,
-      required this.httpClient,
-      required this.placeholder});
+  DownloadableImageProvider({
+    required this.url,
+    required this.destination,
+    required this.headers,
+    required this.httpClient,
+    required this.placeholder,
+  });
 
   @override
   ImageStreamCompleter loadImage(

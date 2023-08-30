@@ -90,7 +90,11 @@ class Points {
     return populate();
   }
 
-  void adjustBoundries(LatLng center) async {
+  void adjustBoundries(MapPosition mapPosition) async {
+    if (mapPosition.center == null) return;
+
+    final LatLng center = mapPosition.center!;
+
     bool hasExpanded = false;
 
     if (innerBounds.shouldExpandNorth(center)) {
@@ -111,15 +115,14 @@ class Points {
       innerBounds.expandEast(shouldMove: true);
     }
 
-    if (hasExpanded) {
-      print(hasExpanded);
+    if (hasExpanded && mapPosition.zoom == zoomLevel) {
       await save();
-      populate().then((_) {
-        if (allPoints.isEmpty) return;
+      await populate();
 
-        // connect ;new points and old ones (they are different layers)
-        allPoints.last.add(center);
-      });
+      if (allPoints.isEmpty) return;
+
+      // connect new points and old ones (they are different layers)
+      allPoints.last.add(center);
     }
   }
 

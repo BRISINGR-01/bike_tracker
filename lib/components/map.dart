@@ -23,6 +23,8 @@ class Map extends StatefulWidget {
 }
 
 class MapState extends State<Map> {
+  final primary = Colors.lightBlue;
+  final secondary = Colors.blue;
   final mapController = MapController();
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final bool isDebug = kDebugMode &&
@@ -46,8 +48,11 @@ class MapState extends State<Map> {
     } else if (await isLocationPermitted()) {
       newPosition = await getPosition();
 
-      Geolocator.getPositionStream().listen(
-          (event) => moveToPosition(LatLng(event.latitude, event.longitude)));
+      Geolocator.getPositionStream().listen((event) {
+        if (!userHasMoved) {
+          moveToPosition(LatLng(event.latitude, event.longitude));
+        }
+      });
     } else {
       setState(() {
         shouldRequestPermissions = true;
@@ -56,6 +61,7 @@ class MapState extends State<Map> {
 
     if (newPosition != null) {
       moveToPosition(newPosition);
+      // first move then set up the points!
       points
           .setUp(await PointsDB.init(), newPosition, mapController)
           .then((_) => setState(() {}));
@@ -76,14 +82,14 @@ class MapState extends State<Map> {
       if (!isDebug) return;
     }
 
-    if (mapPosition.center == null || position == null) return;
+    if (position == null || mapPosition.center == null) return;
 
     setState(() {
-      points.adjustBoundries(mapPosition.center!);
+      points.adjustBoundries(mapPosition);
 
       if (hasStarted) {
-        position = mapPosition.center!;
         points.add(position!);
+        position = mapPosition.center!;
       }
     });
   }
@@ -91,27 +97,20 @@ class MapState extends State<Map> {
   void toggleStart() async {
     if (position == null) await prepare();
 
-    if (!shouldRequestPermissions) {
-      if (position != null) {
-        userHasMoved = false;
-        moveToPosition(position!);
-        await points.save();
+    if (shouldRequestPermissions || position == null) return;
 
-        if (!hasStarted) {
-          points.adjustBoundries(position!);
-        }
-      }
+    if (hasStarted) await points.save();
 
-      setState(() {
-        hasStarted = !hasStarted;
-      });
-    }
+    moveToPosition(position!);
+
+    setState(() {
+      userHasMoved = false;
+      hasStarted = !hasStarted;
+    });
   }
 
   moveToPosition(LatLng newPosition) {
-    if (!userHasMoved) {
-      mapController.move(newPosition, zoomLevel);
-    }
+    mapController.move(newPosition, zoomLevel);
   }
 
   onMapEvent(MapEvent p0) {
@@ -126,13 +125,8 @@ class MapState extends State<Map> {
   void initState() {
     super.initState();
 
-    tileFilesDetails.load().then((value) {
-      setState(() {});
-    });
-
-    userSettings.load().then((value) {
-      setState(() {});
-    });
+    tileFilesDetails.load().then((_) => setState(() {}));
+    userSettings.load().then((_) => setState(() {}));
   }
 
   @override
@@ -141,6 +135,7 @@ class MapState extends State<Map> {
       child: Scaffold(
           key: scaffoldKey,
           drawer: Drawer(
+            backgroundColor: primary,
             child: ListView(
               children: [
                 ListTile(
@@ -152,7 +147,9 @@ class MapState extends State<Map> {
                   leading: const Icon(Icons.color_lens),
                   title: const Text('Change trail colour'),
                   onTap: () {
-                    setState(() => colorToPick = "trail");
+                    setState(() {
+                      colorToPick = "trail";
+                    });
                     scaffoldKey.currentState?.closeDrawer();
                   },
                 ),
@@ -160,7 +157,9 @@ class MapState extends State<Map> {
                   leading: const Icon(Icons.color_lens),
                   title: const Text('Change location dot colour'),
                   onTap: () {
-                    setState(() => colorToPick = "dot");
+                    setState(() {
+                      colorToPick = "dot";
+                    });
                     scaffoldKey.currentState?.closeDrawer();
                   },
                 ),
@@ -171,8 +170,9 @@ class MapState extends State<Map> {
             label: Text(
               hasStarted ? "Stop" : "Start",
               style: TextStyle(
-                  color: hasStarted ? Colors.white : Colors.black,
-                  fontSize: 16),
+                color: hasStarted ? Colors.white : Colors.black,
+                fontSize: 16,
+              ),
             ),
             extendedPadding: const EdgeInsets.all(24),
             extendedIconLabelSpacing: 12,
@@ -284,7 +284,9 @@ class MapState extends State<Map> {
                                           .resetDot()
                                           .then((_) => setState(() {}));
                                     }
-                                    setState(() => colorToPick = null);
+                                    setState(() {
+                                      colorToPick = null;
+                                    });
                                   },
                                 ),
                                 ElevatedButton(
@@ -295,7 +297,9 @@ class MapState extends State<Map> {
                                     } else {
                                       userSettings.saveDot();
                                     }
-                                    setState(() => colorToPick = null);
+                                    setState(() {
+                                      colorToPick = null;
+                                    });
                                   },
                                 ),
                               ],
@@ -318,10 +322,8 @@ class MapState extends State<Map> {
                                   child: const Text("Allow"),
                                 ),
                                 TextButton(
-                                  onPressed: () {
-                                    setState(
-                                        () => shouldRequestPermissions = false);
-                                  },
+                                  onPressed: () => setState(
+                                      () => shouldRequestPermissions = false),
                                   child: const Text("Cancel"),
                                 )
                               ],
@@ -333,28 +335,28 @@ class MapState extends State<Map> {
                 left: 10,
                 top: 10,
                 child: CircleAvatar(
-                  backgroundColor: Colors.blueAccent.shade100,
+                  backgroundColor: secondary,
                   radius: 25,
                   child: IconButton(
                     icon: const Icon(Icons.menu),
-                    onPressed: () {
-                      scaffoldKey.currentState?.openDrawer();
-                    },
+                    onPressed: scaffoldKey.currentState?.openDrawer,
                   ),
                 ),
               ),
-              if (userHasMoved)
+              if (userHasMoved && position != null)
                 Positioned(
                   bottom: 90,
                   right: 20,
                   child: CircleAvatar(
-                    backgroundColor: Colors.blueAccent.shade100,
+                    backgroundColor: secondary,
                     radius: 25,
                     child: IconButton(
                       icon: const Icon(Icons.my_location_outlined),
                       onPressed: () {
-                        userHasMoved = false;
-                        if (position != null) moveToPosition(position!);
+                        setState(() {
+                          userHasMoved = false;
+                        });
+                        moveToPosition(position!);
                       },
                     ),
                   ),
