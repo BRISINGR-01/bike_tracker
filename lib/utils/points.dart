@@ -9,12 +9,46 @@ import 'package:latlong2/latlong.dart';
 class Points {
   List<List<LatLng>> allPoints = [];
   List<LatLng> newPoints = [];
+  LatLng prevPoint = CustomBounds.outsideOfMap.upperLeft;
   CustomBounds outerBounds = CustomBounds.outsideOfMap;
   CustomBounds innerBounds = CustomBounds.outsideOfMap;
   late PointsDB _db;
 
   Future<void> add(LatLng p) async {
-    if (shouldAdd(p, newPoints, allPoints)) newPoints.add(p);
+    if (shouldAdd(p)) newPoints.add(p);
+  }
+
+  bool shouldAdd(LatLng p) {
+    if (newPoints.length < 2) {
+      return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
+    }
+
+    // direction is defined using current point and last two points
+
+    final last = newPoints.last;
+    final lastButOne = newPoints[newPoints.length - 2];
+
+    var lngDif1 = prevPoint.longitude - p.longitude;
+    if (lngDif1 == 0) lngDif1 = 0.0000000001;
+    var lngDif2 = lastButOne.longitude - last.longitude;
+    if (lngDif2 == 0) lngDif2 = 0.0000000001;
+
+    final latDif1 = last.latitude - p.latitude;
+    final latDif2 = lastButOne.latitude - last.latitude;
+
+    final direction1 = latDif1 / lngDif1;
+    final direction2 = latDif2 / lngDif2;
+
+    // print(latDif1 / latDif2);
+    // print(lngDif1 / lngDif2);
+
+    var distance = ((prevPoint.latitude - last.latitude).abs() +
+            (prevPoint.longitude - last.longitude).abs()) *
+        3000;
+
+    prevPoint = p;
+
+    return (direction1 - direction2).abs() > 1 - distance;
   }
 
   Future<void> setUp(
@@ -23,6 +57,7 @@ class Points {
     MapController mapController,
   ) {
     _db = db;
+    prevPoint = center;
 
     return setBoundries(center, mapController);
   }

@@ -220,38 +220,14 @@ class MapState extends State<Map> {
                                 mapController.zoom,
                                 userSettings.locationDot,
                                 userSettings.locationDotInner,
+                              ),
+                              LocationDot(
+                                points.prevPoint,
+                                mapController.zoom,
+                                Colors.red,
+                                Colors.red.withAlpha(200),
                               )
                             ]),
-                        ],
-                        children: [
-                          TileLayer(
-                            urlTemplate: tileFilesDetails.tileFileUrl,
-                            fallbackUrl:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            tileProvider: NetworkAndFileTileProvider(
-                              placeholder: tileFilesDetails.tilePlaceholder,
-                            ),
-                          ),
-                          ...points.allPoints.map(
-                            (pointsList) => PolylineLayer(
-                              polylines: [
-                                Polyline(
-                                  points: pointsList,
-                                  color: userSettings.trail,
-                                  strokeWidth: 4,
-                                ),
-                              ],
-                            ),
-                          ),
-                          PolylineLayer(
-                            polylines: [
-                              Polyline(
-                                points: points.newPoints,
-                                color: userSettings.trail,
-                                strokeWidth: 4,
-                              ),
-                            ],
-                          ),
                           if (colorToPick != null)
                             AlertDialog(
                               title: const Text('Pick a color!'),
@@ -329,6 +305,56 @@ class MapState extends State<Map> {
                               ],
                             ),
                         ],
+                        children: [
+                          TileLayer(
+                            urlTemplate: tileFilesDetails.tileFileUrl,
+                            fallbackUrl:
+                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            tileProvider: NetworkAndFileTileProvider(
+                              placeholder: tileFilesDetails.tilePlaceholder,
+                            ),
+                          ),
+                          ...points.allPoints.map(
+                            (pointsList) => PolylineLayer(
+                              polylines: [
+                                Polyline(
+                                  points: pointsList,
+                                  color: userSettings.trail,
+                                  strokeWidth: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: [...points.newPoints, points.prevPoint],
+                                color: userSettings.trail,
+                                strokeWidth: 4,
+                              ),
+                            ],
+                          ),
+                          // if (position != null)
+                          //   PolygonLayer(
+                          //     polygons: [
+                          //       Polygon(
+                          //         points: [
+                          //           points.innerBounds.upperLeft,
+                          //           LatLng(
+                          //               points.innerBounds.upperLeft.latitude,
+                          //               points
+                          //                   .innerBounds.lowerRight.longitude),
+                          //           points.innerBounds.lowerRight,
+                          //           LatLng(
+                          //               points.innerBounds.lowerRight.latitude,
+                          //               points.innerBounds.upperLeft.longitude),
+                          //         ],
+                          //         borderColor: Colors.black,
+                          //         borderStrokeWidth: 2,
+                          //       ),
+                          //     ],
+                          //   ),
+                        ],
                       ),
               ),
               Positioned(
@@ -360,7 +386,7 @@ class MapState extends State<Map> {
                       },
                     ),
                   ),
-                )
+                ),
             ],
           )),
     );

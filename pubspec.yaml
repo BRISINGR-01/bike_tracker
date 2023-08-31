@@ -22,12 +22,13 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.9
   shared_preferences: ^2.2.0
   flutter_colorpicker: ^1.0.3
+  rename_app: ^1.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_native_splash: ^2.3.2
-  flutter_launcher_icons: ^0.13.1
+  # flutter_native_splash: ^2.3.2
+  # flutter_launcher_icons: ^0.13.1
   flutter_lints: ^2.0.0
 
 flutter:
