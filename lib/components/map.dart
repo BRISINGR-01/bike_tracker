@@ -22,7 +22,7 @@ class Map extends StatefulWidget {
   State<StatefulWidget> createState() => MapState();
 }
 
-class MapState extends State<Map> {
+class MapState extends State<Map> with WidgetsBindingObserver {
   final primary = Colors.lightBlue;
   final secondary = Colors.blue;
   final mapController = MapController();
@@ -49,6 +49,7 @@ class MapState extends State<Map> {
       newPosition = await getPosition();
 
       Geolocator.getPositionStream().listen((event) {
+        print(event);
         if (!userHasMoved) {
           moveToPosition(LatLng(event.latitude, event.longitude));
         }
@@ -122,11 +123,28 @@ class MapState extends State<Map> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print("___________________---");
+    print(state);
+    print("___________________---");
+  }
+
+  @override
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     tileFilesDetails.load().then((_) => setState(() {}));
     userSettings.load().then((_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    print("00000000000000000000");
+    WidgetsBinding.instance.removeObserver(this);
+    print("00000000000000000000");
+    super.dispose();
   }
 
   @override

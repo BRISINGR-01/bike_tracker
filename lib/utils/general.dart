@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path/path.dart';
 
 const double zoomLevel = 18;
 
@@ -32,7 +31,9 @@ Future<bool> requestPermission() async {
 }
 
 Future<LatLng> getPosition() async {
-  final position = await Geolocator.getCurrentPosition();
+  final position = await Geolocator.getCurrentPosition(
+    desiredAccuracy: LocationAccuracy.high,
+  );
 
   return LatLng(position.latitude, position.longitude);
 }

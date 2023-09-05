@@ -22,7 +22,8 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.9
   shared_preferences: ^2.2.0
   flutter_colorpicker: ^1.0.3
-  rename_app: ^1.1.0
+  workmanager: ^0.5.1
+  # rename_app: ^1.1.0
 
 dev_dependencies:
   flutter_test:
