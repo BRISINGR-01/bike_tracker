@@ -22,8 +22,7 @@ class SQLWrapper {
     // instance.execute('''
     //   DROP TABLE IF EXISTS '$tableName'
     // ''');
-    instance.execute(
-        '''
+    instance.execute('''
       CREATE TABLE IF NOT EXISTS $tableName (
         $latColumn float(3, 6) NOT NULL,
         $longColumn float(3, 6) NOT NULL
@@ -36,25 +35,22 @@ class SQLWrapper {
   Future execute(String sqlQuery) => _dbInstance.execute(sqlQuery);
 
   Future<List<List<LatLng>>> get(CustomBounds bounds) async {
-    List<Map<String, Object?>> result = await _dbInstance.query(tableName,
-        columns: [
-          latColumn,
-          longColumn,
-          "rowid"
-        ],
-        where:
-            """
+    List<Map<String, Object?>> result =
+        await _dbInstance.query(tableName, columns: [
+      latColumn,
+      longColumn,
+      "rowid"
+    ], where: """
             ? > $latColumn AND
             ? < $longColumn AND
             ? < $latColumn AND
             ? > $longColumn
-            """,
-        whereArgs: [
-          bounds.upperLeft.latitude,
-          bounds.upperLeft.longitude,
-          bounds.lowerRight.latitude,
-          bounds.lowerRight.longitude,
-        ]);
+            """, whereArgs: [
+      bounds.upperLeft.latitude,
+      bounds.upperLeft.longitude,
+      bounds.lowerRight.latitude,
+      bounds.lowerRight.longitude,
+    ]);
 
     List<List<LatLng>> coordinates = [];
     int lastId = -1;

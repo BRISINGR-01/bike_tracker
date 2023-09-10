@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:bike_tracker/components/loader.dart';
 import 'package:bike_tracker/components/location_dot.dart';
@@ -6,8 +7,10 @@ import 'package:bike_tracker/utils/custom_bounds.dart';
 import 'package:bike_tracker/utils/points_db.dart';
 import 'package:bike_tracker/utils/general.dart';
 import 'package:bike_tracker/utils/points.dart';
+import 'package:bike_tracker/utils/sql_wrapper.dart';
 import 'package:bike_tracker/utils/tile_files_details.dart';
 import 'package:bike_tracker/utils/user_settings.dart';
+import 'package:bike_tracker/background/work_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -36,6 +39,7 @@ class MapState extends State<Map> with WidgetsBindingObserver {
 
   LatLng? position;
   String? colorToPick;
+  StreamSubscription? st;
   final Points points = Points();
   final TileFilesDetails tileFilesDetails = TileFilesDetails();
   final UserSettings userSettings = UserSettings();
@@ -48,11 +52,15 @@ class MapState extends State<Map> with WidgetsBindingObserver {
     } else if (await isLocationPermitted()) {
       newPosition = await getPosition();
 
-      Geolocator.getPositionStream().listen((event) {
-        print(event);
-        if (!userHasMoved) {
-          moveToPosition(LatLng(event.latitude, event.longitude));
-        }
+      st = Geolocator.getPositionStream().listen((event) {
+        var newCurrentPosition = LatLng(event.latitude, event.longitude);
+
+        print("foreground");
+
+        setState(() {
+          position = newCurrentPosition;
+        });
+        moveToPosition(newCurrentPosition);
       });
     } else {
       setState(() {
@@ -83,14 +91,16 @@ class MapState extends State<Map> with WidgetsBindingObserver {
       if (!isDebug) return;
     }
 
-    if (position == null || mapPosition.center == null) return;
+    if (userHasMoved ||
+        !hasStarted ||
+        position == null ||
+        mapPosition.center == null) return;
 
     setState(() {
       points.adjustBoundries(mapPosition);
 
       if (hasStarted) {
         points.add(position!);
-        position = mapPosition.center!;
       }
     });
   }
@@ -124,9 +134,26 @@ class MapState extends State<Map> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print("___________________---");
     print(state);
-    print("___________________---");
+    if (st == null || !hasStarted) return;
+
+    switch (state) {
+      case AppLifecycleState.paused:
+        st!.pause();
+        BackgroundTask.start();
+        break;
+
+      case AppLifecycleState.resumed:
+        BackgroundTask.stop();
+        if (st!.isPaused) st!.resume();
+        break;
+
+      case AppLifecycleState.detached:
+        st!.cancel();
+        BackgroundTask.stop();
+
+      default:
+    }
   }
 
   @override
@@ -137,14 +164,6 @@ class MapState extends State<Map> with WidgetsBindingObserver {
 
     tileFilesDetails.load().then((_) => setState(() {}));
     userSettings.load().then((_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    print("00000000000000000000");
-    WidgetsBinding.instance.removeObserver(this);
-    print("00000000000000000000");
-    super.dispose();
   }
 
   @override
