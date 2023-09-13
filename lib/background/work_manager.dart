@@ -15,7 +15,7 @@ class BackgroundTask {
 
   static Future<void> start() async {
     return Workmanager().registerOneOffTask(
-      "bike-tracker-task-identifier",
+      "task-identifier",
       taskNameStart,
       tag: tagStart,
     );

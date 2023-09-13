@@ -6,6 +6,7 @@ import 'package:bike_tracker/background/work_manager.dart';
 import 'package:bike_tracker/utils/sql_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:workmanager/workmanager.dart';
 
 void main() async {
@@ -25,6 +26,7 @@ void callbackDispatcher() async {
 
   Workmanager().executeTask((task, inputData) async {
     if (task == taskNameStart) {
+      db.insert([LatLng(0, 0)]);
       if (st == null) {
         try {
           st = Geolocator.getPositionStream().listen(points.add);
