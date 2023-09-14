@@ -16,6 +16,7 @@ class SQLWrapper {
     sqfliteFfiInit();
 
     var dbDirectory = await getApplicationDocumentsDirectory();
+    print(dbDirectory);
     var instance = await databaseFactoryFfi
         .openDatabase(path.join(dbDirectory.path, 'points-database.sql'));
 
