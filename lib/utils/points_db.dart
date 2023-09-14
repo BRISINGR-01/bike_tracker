@@ -12,11 +12,19 @@ class PointsDB {
     return PointsDB._(db);
   }
 
-  Future<void> add(List<LatLng> points) async {
+  Future<void> addFromMain(List<LatLng> points) async {
+    return _db.insert(points);
+  }
+
+  Future<void> addFromBackground(List<LatLng> points) async {
     return _db.insert(points);
   }
 
   Future<List<List<LatLng>>> get(CustomBounds bounds) async {
     return _db.get(bounds);
+  }
+
+  Future<void> stop() {
+    return _db.stop();
   }
 }

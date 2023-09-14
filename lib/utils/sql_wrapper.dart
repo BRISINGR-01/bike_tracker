@@ -76,4 +76,8 @@ class SQLWrapper {
       });
     }
   }
+
+  Future<void> stop() {
+    return _dbInstance.close();
+  }
 }

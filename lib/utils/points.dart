@@ -19,9 +19,7 @@ class Points {
   }
 
   bool shouldAdd(LatLng p) {
-    if (newPoints.length < 2) {
-      return newPoints.isEmpty || getDistance(p, newPoints.last) > 0.0001;
-    }
+    return newPoints.isEmpty || arePointsTooClose(p, newPoints.last);
 
     // direction is defined using current point and last two points
 
@@ -151,7 +149,6 @@ class Points {
     }
 
     if (hasExpanded && mapPosition.zoom == zoomLevel) {
-      await save();
       await populate();
 
       if (allPoints.isEmpty) return;
@@ -165,13 +162,5 @@ class Points {
     return _db.get(outerBounds).then((value) {
       allPoints = value;
     });
-  }
-
-  Future<void> save() async {
-    // avoid adding the points twice
-    var p = newPoints.toList();
-    newPoints.clear();
-
-    await _db.add(p);
   }
 }

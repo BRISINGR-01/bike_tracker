@@ -5,6 +5,7 @@ class UserSettings {
   Color trail = Colors.blue;
   Color locationDot = Colors.green;
   Color locationDotInner = Colors.green.withAlpha(200);
+  bool hasLoaded = false;
 
   Future<void> load() async {
     var pref = await SharedPreferences.getInstance();
@@ -29,6 +30,8 @@ class UserSettings {
         locationDotInner = locationDot.withAlpha(200);
       } catch (_) {}
     }
+
+    hasLoaded = true;
   }
 
   Future<void> resetTrail() async {

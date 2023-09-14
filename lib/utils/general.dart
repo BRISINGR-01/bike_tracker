@@ -15,15 +15,12 @@ Future<bool> isLocationPermitted() async {
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
   LocationPermission permission = await Geolocator.checkPermission();
 
-  if (serviceEnabled && permission == LocationPermission.always ||
-      permission == LocationPermission.whileInUse) return true;
+  if (serviceEnabled &&
+      (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse)) return true;
 
-  return await requestPermission();
-}
-
-Future<bool> requestPermission() async {
   await Geolocator.requestPermission();
-  LocationPermission permission = await Geolocator.checkPermission();
+  permission = await Geolocator.checkPermission();
   return permission != LocationPermission.denied &&
       permission != LocationPermission.deniedForever;
 }
@@ -48,7 +45,9 @@ class DebugPoints {
   }
 }
 
-double getDistance(LatLng p1, LatLng p2) {
-  return sqrt(
+bool arePointsTooClose(LatLng p1, LatLng p2) {
+  var dist = sqrt(
       pow(p1.latitude - p2.latitude, 2) + pow(p1.longitude - p2.longitude, 2));
+
+  return dist > 0.0001;
 }
