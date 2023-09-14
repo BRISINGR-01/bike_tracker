@@ -16,7 +16,10 @@ class MyApp extends StatelessWidget {
       title: 'Bike tracker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: const ColorScheme.light(
+          primary: Colors.lightGreenAccent,
+          secondary: Colors.black,
+        ),
         useMaterial3: true,
       ),
       home: const Map(),

@@ -16,22 +16,38 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.secondary,
       child: ListView(
         children: [
           ListTile(
-            leading: const Icon(Icons.delete),
-            title: const Text('Clear cache'),
+            leading: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Clear cache',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
             onTap: clearCache,
           ),
           ListTile(
-            leading: const Icon(Icons.color_lens),
-            title: const Text('Change trail colour'),
+            leading: Icon(
+              Icons.color_lens,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
+              'Change trail colour',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
             onTap: changeTrailColor,
           ),
           ListTile(
-            leading: const Icon(Icons.color_lens),
-            title: const Text('Change location dot colour'),
+            leading: Icon(Icons.color_lens,
+                color: Theme.of(context).colorScheme.primary),
+            title: Text(
+              'Change location dot colour',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
             onTap: changeDotColor,
           ),
         ],

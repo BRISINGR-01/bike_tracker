@@ -30,8 +30,6 @@ class Map extends StatefulWidget {
 }
 
 class MapState extends State<Map> {
-  final primary = Colors.lightBlue;
-  final secondary = Colors.blue;
   final mapController = MapController();
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final bool isDebug = kDebugMode &&
@@ -118,13 +116,13 @@ class MapState extends State<Map> {
 
     if (shouldRequestPermissions != false || position == null) return;
 
+    moveToPosition(position!);
+
     if (hasStarted) {
       await BackgroundLocation.stopLocationService();
     } else {
       await BackgroundLocation.startLocationService();
     }
-
-    moveToPosition(position!);
 
     setState(() {
       userHasMoved = false;
@@ -227,12 +225,6 @@ class MapState extends State<Map> {
                                     mapController.zoom,
                                     userSettings.locationDot,
                                     userSettings.locationDotInner,
-                                  ),
-                                  LocationDot(
-                                    points.prevPoint,
-                                    mapController.zoom,
-                                    Colors.red,
-                                    Colors.red.withAlpha(200),
                                   )
                                 ]),
                               if (colorToPick != null)

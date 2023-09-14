@@ -13,7 +13,7 @@ class NavButton extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.secondary,
         radius: 25,
         child: IconButton(
-          icon: const Icon(Icons.menu),
+          icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.primary),
           onPressed: onPress,
         ),
       ),

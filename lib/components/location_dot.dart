@@ -17,7 +17,8 @@ class LocationDot extends Marker {
             child: Container(
               decoration: BoxDecoration(
                 color: colorInner,
-                border: Border.fromBorderSide(BorderSide(color: color)),
+                border: const Border.fromBorderSide(
+                    BorderSide(width: 2, color: Colors.black)),
                 shape: BoxShape.circle,
               ),
             ),

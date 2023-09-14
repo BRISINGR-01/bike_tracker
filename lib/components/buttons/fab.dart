@@ -11,7 +11,8 @@ class FAB extends StatelessWidget {
       label: Text(
         hasStarted ? "Stop" : "Start",
         style: TextStyle(
-          color: hasStarted ? Colors.white : Colors.black,
+          color:
+              hasStarted ? Colors.white : Theme.of(context).colorScheme.primary,
           fontSize: 16,
         ),
       ),
@@ -20,10 +21,12 @@ class FAB extends StatelessWidget {
       elevation: 24,
       shape: const StadiumBorder(side: BorderSide()),
       onPressed: toggleStart,
-      backgroundColor: hasStarted ? Colors.red : Colors.greenAccent.shade400,
+      backgroundColor:
+          hasStarted ? Colors.red : Theme.of(context).colorScheme.secondary,
       icon: Icon(
         Icons.flag,
-        color: hasStarted ? Colors.white : Colors.black,
+        color:
+            hasStarted ? Colors.white : Theme.of(context).colorScheme.primary,
         size: 30,
       ),
     );

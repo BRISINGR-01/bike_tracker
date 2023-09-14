@@ -14,7 +14,10 @@ class Return extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.secondary,
         radius: 25,
         child: IconButton(
-          icon: const Icon(Icons.my_location_outlined),
+          icon: Icon(
+            Icons.my_location_outlined,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           onPressed: onPress,
         ),
       ),

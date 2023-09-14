@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSettings {
-  Color trail = Colors.blue;
-  Color locationDot = Colors.green;
-  Color locationDotInner = Colors.green.withAlpha(200);
+  Color trail = Colors.lightGreenAccent;
+  Color locationDot = Colors.lightGreenAccent;
+  Color locationDotInner = Colors.lightGreenAccent.withAlpha(200);
   bool hasLoaded = false;
 
   Future<void> load() async {
