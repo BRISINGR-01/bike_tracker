@@ -64,27 +64,23 @@ class MapState extends State<Map> with WidgetsBindingObserver {
     if (newPosition != null) {
       moveToPosition(newPosition);
       // first move then set up the points!
-      points
-          .setUp(await PointsDB.init(), newPosition, mapController)
-          .then((_) => setState(() {}));
+      points.setUp(await PointsDB.init(), newPosition, mapController).then((_) {
+        BackgroundLocation.getLocationUpdates((location) {
+          if (location.latitude == null || location.longitude == null) return;
 
-      BackgroundLocation.getLocationUpdates((location) {
-        if (location.latitude == null || location.longitude == null) return;
+          var newCurrentPosition =
+              LatLng(location.latitude!, location.longitude!);
 
-        var newCurrentPosition =
-            LatLng(location.latitude!, location.longitude!);
+          if (newCurrentPosition == position) return;
 
-        if (newCurrentPosition == position) return;
+          if (!userHasMoved && isForeground) moveToPosition(newCurrentPosition);
 
-        if (!userHasMoved && isForeground) moveToPosition(newCurrentPosition);
-
-        if (hasStarted) {
-          points.add(newCurrentPosition);
-          points.save(newCurrentPosition);
-        }
-
-        setState(() {
-          position = newCurrentPosition;
+          setState(() {
+            if (hasStarted) {
+              points.add(newCurrentPosition);
+            }
+            position = newCurrentPosition;
+          });
         });
       });
 

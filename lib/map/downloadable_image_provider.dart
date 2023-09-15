@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:bike_tracker/utils/general.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:http/http.dart';
