@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:bike_tracker/utils/general.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:http/http.dart';
@@ -13,7 +14,7 @@ class DownloadableImageProvider
   final String url;
 
   /// The file where to save the image
-  final File destination;
+  final File? destination;
 
   /// In case an image cannot be fetched or saved, this is a fallback placeholder image
   final Uint8List placeholder;
@@ -71,9 +72,11 @@ class DownloadableImageProvider
         headers: headers,
       );
 
-      destination
-          .create(recursive: true)
-          .then((value) => value.writeAsBytesSync(bytes, flush: true));
+      if (destination != null) {
+        destination!
+            .create(recursive: true)
+            .then((value) => value.writeAsBytesSync(bytes, flush: true));
+      }
     } catch (_) {
       bytes = placeholder;
     }

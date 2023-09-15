@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bike_tracker/map/downloadable_image_provider.dart';
+import 'package:bike_tracker/utils/general.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/src/painting/image_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -32,7 +33,7 @@ class NetworkAndFileTileProvider extends TileProvider {
     return DownloadableImageProvider(
       url: getTileFallbackUrl(coordinates, options)!,
       headers: headers,
-      destination: file,
+      destination: coordinates.z == zoomLevel ? file : null,
       placeholder: placeholder,
       httpClient: httpClient,
     );
