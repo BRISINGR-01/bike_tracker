@@ -1,4 +1,5 @@
 import 'package:bike_tracker/components/map.dart';
+import 'package:bike_tracker/utils/colors.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
@@ -16,9 +17,18 @@ class MyApp extends StatelessWidget {
       title: 'Bike tracker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: const ColorScheme.light(
-          primary: Colors.lightGreenAccent,
-          secondary: Colors.black,
+        colorScheme: const ColorScheme(
+          primary: CustomColorsScheme.primary,
+          onPrimary: CustomColorsScheme.secondary,
+          secondary: CustomColorsScheme.secondary,
+          onSecondary: CustomColorsScheme.primary,
+          background: CustomColorsScheme.primary,
+          onBackground: CustomColorsScheme.secondary,
+          surface: CustomColorsScheme.primary,
+          onSurface: CustomColorsScheme.secondary,
+          brightness: Brightness.dark,
+          error: Colors.red,
+          onError: CustomColorsScheme.secondary,
         ),
         useMaterial3: true,
       ),

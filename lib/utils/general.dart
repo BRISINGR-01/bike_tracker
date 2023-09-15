@@ -1,37 +1,14 @@
-import 'dart:io';
 import 'dart:math';
 
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 const double zoomLevel = 18;
 
+const double pointsMinDistance = 0.0001; // ~ 11.1m
+const double pointsMinDistanceExpanded = pointsMinDistance * 3;
+
 const double boundryLngLength = 0.0015;
 const double boundryLatLength = boundryLngLength / 1.5;
-
-Future<bool> isLocationPermitted() async {
-  if (Platform.isLinux) return false;
-
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  LocationPermission permission = await Geolocator.checkPermission();
-
-  if (serviceEnabled &&
-      (permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse)) return true;
-
-  await Geolocator.requestPermission();
-  permission = await Geolocator.checkPermission();
-  return permission != LocationPermission.denied &&
-      permission != LocationPermission.deniedForever;
-}
-
-Future<LatLng> getPosition() async {
-  final position = await Geolocator.getCurrentPosition(
-    desiredAccuracy: LocationAccuracy.high,
-  );
-
-  return LatLng(position.latitude, position.longitude);
-}
 
 class DebugPoints {
   // ignore: non_constant_identifier_names
@@ -45,9 +22,13 @@ class DebugPoints {
   }
 }
 
-bool arePointsTooClose(LatLng p1, LatLng p2) {
+bool arePointsClose(
+  LatLng p1,
+  LatLng p2, {
+  double distance = pointsMinDistance,
+}) {
   var dist = sqrt(
       pow(p1.latitude - p2.latitude, 2) + pow(p1.longitude - p2.longitude, 2));
 
-  return dist > 0.0001;
+  return dist > distance;
 }

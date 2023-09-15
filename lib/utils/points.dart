@@ -7,46 +7,45 @@ import 'package:flutter_map/plugin_api.dart';
 import 'package:latlong2/latlong.dart';
 
 class Points {
-  List<List<LatLng>> allPoints = [];
-  List<LatLng> newPoints = [];
+  List<List<LatLng>> allPoints = [[]];
   LatLng prevPoint = CustomBounds.outsideOfMap.upperLeft;
   CustomBounds outerBounds = CustomBounds.outsideOfMap;
   CustomBounds innerBounds = CustomBounds.outsideOfMap;
   late PointsDB _db;
 
   Future<void> add(LatLng p) async {
-    if (shouldAdd(p)) newPoints.add(p);
+    if (shouldAdd(p)) allPoints.last.add(p);
   }
 
   bool shouldAdd(LatLng p) {
-    return newPoints.isEmpty || arePointsTooClose(p, newPoints.last);
+    return allPoints.last.isEmpty || arePointsClose(p, allPoints.last.last);
 
     // direction is defined using current point and last two points
 
-    final last = newPoints.last;
-    final lastButOne = newPoints[newPoints.length - 2];
+    // final last = newPoints.last;
+    // final lastButOne = newPoints[newPoints.length - 2];
 
-    var lngDif1 = prevPoint.longitude - p.longitude;
-    if (lngDif1 == 0) lngDif1 = 0.0000000001;
-    var lngDif2 = lastButOne.longitude - last.longitude;
-    if (lngDif2 == 0) lngDif2 = 0.0000000001;
+    // var lngDif1 = prevPoint.longitude - p.longitude;
+    // if (lngDif1 == 0) lngDif1 = 0.0000000001;
+    // var lngDif2 = lastButOne.longitude - last.longitude;
+    // if (lngDif2 == 0) lngDif2 = 0.0000000001;
 
-    final latDif1 = last.latitude - p.latitude;
-    final latDif2 = lastButOne.latitude - last.latitude;
+    // final latDif1 = last.latitude - p.latitude;
+    // final latDif2 = lastButOne.latitude - last.latitude;
 
-    final direction1 = latDif1 / lngDif1;
-    final direction2 = latDif2 / lngDif2;
+    // final direction1 = latDif1 / lngDif1;
+    // final direction2 = latDif2 / lngDif2;
 
-    // print(latDif1 / latDif2);
-    // print(lngDif1 / lngDif2);
+    // // print(latDif1 / latDif2);
+    // // print(lngDif1 / lngDif2);
 
-    var distance = ((prevPoint.latitude - last.latitude).abs() +
-            (prevPoint.longitude - last.longitude).abs()) *
-        3000;
+    // var distance = ((prevPoint.latitude - last.latitude).abs() +
+    //         (prevPoint.longitude - last.longitude).abs()) *
+    //     3000;
 
-    prevPoint = p;
+    // prevPoint = p;
 
-    return (direction1 - direction2).abs() > 1 - distance;
+    // return (direction1 - direction2).abs() > 1 - distance;
   }
 
   Future<void> setUp(
@@ -123,7 +122,7 @@ class Points {
     return populate();
   }
 
-  void adjustBoundries(MapPosition mapPosition) async {
+  Future<void> adjustBoundries(MapPosition mapPosition) async {
     if (mapPosition.center == null) return;
 
     final LatLng center = mapPosition.center!;
@@ -160,7 +159,12 @@ class Points {
 
   Future<void> populate() {
     return _db.get(outerBounds).then((value) {
+      if (value.isEmpty) value.add([]);
       allPoints = value;
     });
+  }
+
+  Future<void> save(LatLng p) {
+    return _db.add(p);
   }
 }

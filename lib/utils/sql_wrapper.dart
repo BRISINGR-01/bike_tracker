@@ -1,4 +1,5 @@
 import 'package:bike_tracker/utils/custom_bounds.dart';
+import 'package:bike_tracker/utils/general.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -16,7 +17,6 @@ class SQLWrapper {
     sqfliteFfiInit();
 
     var dbDirectory = await getApplicationDocumentsDirectory();
-    print(dbDirectory);
     var instance = await databaseFactoryFfi
         .openDatabase(path.join(dbDirectory.path, 'points-database.sql'));
 
@@ -57,28 +57,29 @@ class SQLWrapper {
     int lastId = -1;
     for (var row in result) {
       int id = row["rowid"] as int;
-      if (id - lastId != 1) {
-        coordinates.add([]);
-      }
+      var p = LatLng(row[latColumn] as double, row[longColumn] as double);
 
-      coordinates.last
-          .add(LatLng(row[latColumn] as double, row[longColumn] as double));
+      bool pointsAreTooClose = (coordinates.isEmpty ||
+          coordinates.last.isEmpty ||
+          !arePointsClose(
+            p,
+            coordinates.last.last,
+            distance: pointsMinDistanceExpanded,
+          ));
+
+      if (id - lastId != 1 && pointsAreTooClose) coordinates.add([]);
+
+      coordinates.last.add(p);
       lastId = id;
     }
 
     return coordinates;
   }
 
-  Future<void> insert(List<LatLng> coords) async {
-    for (var coord in coords) {
-      await _dbInstance.insert(tableName, {
-        latColumn: coord.latitude.toStringAsFixed(5),
-        longColumn: coord.longitude.toStringAsFixed(5),
-      });
-    }
-  }
-
-  Future<void> stop() {
-    return _dbInstance.close();
+  Future<void> insert(LatLng coords) async {
+    await _dbInstance.insert(tableName, {
+      latColumn: coords.latitude.toStringAsFixed(5),
+      longColumn: coords.longitude.toStringAsFixed(5),
+    });
   }
 }

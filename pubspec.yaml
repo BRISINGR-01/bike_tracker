@@ -11,22 +11,14 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.2
-  geolocator: ^9.0.2
   latlong2: ^0.9.0
   flutter_map: ^5.0.0
-  positioned_tap_detector_2: ^1.0.4
   path_provider: ^2.0.15
   http: ^1.1.0
   path: ^1.8.3
   sqflite_common_ffi: ^2.1.1+1
   sqlite3_flutter_libs: ^0.5.9
-  shared_preferences: ^2.2.0
-  flutter_colorpicker: ^1.0.3
-  workmanager: ^0.5.1
-  flutter_background_service: ^5.0.1
-  flutter_background_service_android: ^6.0.1
   flutter_local_notifications: ^15.1.1
-  device_info_plus: ^9.0.3
   background_location: ^0.11.8
   # rename_app: ^1.1.0
 

@@ -1,3 +1,4 @@
+import 'package:bike_tracker/utils/colors.dart';
 import 'package:flutter/material.dart';
 
 class FAB extends StatelessWidget {
@@ -11,22 +12,25 @@ class FAB extends StatelessWidget {
       label: Text(
         hasStarted ? "Stop" : "Start",
         style: TextStyle(
-          color:
-              hasStarted ? Colors.white : Theme.of(context).colorScheme.primary,
+          color: hasStarted
+              ? CustomColorsScheme.secondary
+              : CustomColorsScheme.primary,
           fontSize: 16,
         ),
       ),
       extendedPadding: const EdgeInsets.all(24),
       extendedIconLabelSpacing: 12,
       elevation: 24,
-      shape: const StadiumBorder(side: BorderSide()),
+      shape: const StadiumBorder(side: BorderSide(width: 4)),
       onPressed: toggleStart,
-      backgroundColor:
-          hasStarted ? Colors.red : Theme.of(context).colorScheme.secondary,
+      backgroundColor: hasStarted
+          ? CustomColorsScheme.primary
+          : CustomColorsScheme.secondary,
       icon: Icon(
         Icons.flag,
-        color:
-            hasStarted ? Colors.white : Theme.of(context).colorScheme.primary,
+        color: hasStarted
+            ? CustomColorsScheme.secondary
+            : CustomColorsScheme.primary,
         size: 30,
       ),
     );

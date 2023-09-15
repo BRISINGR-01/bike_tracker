@@ -1,9 +1,11 @@
+import 'package:bike_tracker/utils/colors.dart';
 import 'package:flutter/material.dart';
 
-class Return extends StatelessWidget {
+class ReturnToLocationBtn extends StatelessWidget {
   final Function() onPress;
 
-  const Return({Key? key, required this.onPress}) : super(key: key);
+  const ReturnToLocationBtn({Key? key, required this.onPress})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -11,12 +13,12 @@ class Return extends StatelessWidget {
       bottom: 90,
       right: 20,
       child: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
+        backgroundColor: CustomColorsScheme.secondary,
         radius: 25,
         child: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.my_location_outlined,
-            color: Theme.of(context).colorScheme.primary,
+            color: CustomColorsScheme.primary,
           ),
           onPressed: onPress,
         ),
