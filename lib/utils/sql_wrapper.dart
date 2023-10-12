@@ -23,7 +23,7 @@ class SQLWrapper {
     // instance.execute('''
     //   DROP TABLE IF EXISTS '$tableName'
     // ''');
-    instance.execute('''
+    await instance.execute('''
       CREATE TABLE IF NOT EXISTS $tableName (
         $latColumn float(3, 6) NOT NULL,
         $longColumn float(3, 6) NOT NULL

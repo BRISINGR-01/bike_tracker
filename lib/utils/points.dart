@@ -170,4 +170,8 @@ class Points {
   Future<void> save(LatLng p) {
     return _db.add(p);
   }
+
+  void insertSeperation() {
+    _db.insertSeperation();
+  }
 }

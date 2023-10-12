@@ -19,4 +19,6 @@ class PointsDB {
   Future<List<List<LatLng>>> get(CustomBounds bounds) async {
     return _db.get(bounds);
   }
+
+  void insertSeperation() {}
 }

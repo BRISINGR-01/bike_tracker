@@ -113,6 +113,8 @@ class MapState extends State<Map> with WidgetsBindingObserver {
 
     moveToPosition(position!);
 
+    points.insertSeperation();
+
     setState(() {
       userHasMoved = false;
       hasStarted = !hasStarted;
